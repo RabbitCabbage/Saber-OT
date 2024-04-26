@@ -1,6 +1,5 @@
 #ifndef SaberOT_H__
 #define SaberOT_H__
-#include "emp-ot/ot.h"
 #include "emp-ot/saber/api.h"
 #include "emp-ot/saber/cbd.h"
 #include "emp-ot/saber/fips202.h"
