@@ -1,3 +1,7 @@
+add_compile_options(-fsanitize=address)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_link_options(-fsanitize=address)
+
 #Testing macro
 macro (add_test_executable_with_lib _name libs)
 	add_executable(test_${_name} "${_name}.cpp")

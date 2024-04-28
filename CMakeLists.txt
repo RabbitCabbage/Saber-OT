@@ -14,3 +14,4 @@ install(DIRECTORY emp-ot DESTINATION include/)
 
 ENABLE_TESTING()
 ADD_SUBDIRECTORY(test)
+add_compile_options(-fsanitize=address)

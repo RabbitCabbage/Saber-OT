@@ -45,6 +45,7 @@ class SaberOT: public OT<IO> {
         //     r[i] = new uint16_t[SABER_N];
         // }
         randombytes((reinterpret_cast<unsigned char *>(r)), SABER_L * SABER_N * sizeof(uint16_t));
+        // shake128((unsigned char *)r, SABER_L * SABER_N * sizeof(uint16_t), (unsigned char *)r, SABER_L * SABER_N * sizeof(uint16_t));
         io->send_data(r, SABER_L * SABER_N * sizeof(uint16_t));
         io->flush();
 
@@ -70,11 +71,13 @@ class SaberOT: public OT<IO> {
             // receive b'_0, compute b'_1
             uint16_t **b0p = new uint16_t*[SABER_L];
             uint16_t **b1p = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; ++j) {
-                b0p[j] = new uint16_t[SABER_N];
-                b1p[j] = new uint16_t[SABER_N];
+            *b0p = new uint16_t[SABER_L * SABER_N];
+            *b1p = new uint16_t[SABER_L * SABER_N];
+            for (int j = 1; j < SABER_L; ++j) {
+                b0p[j] = b0p[j - 1] + SABER_N;
+                b1p[j] = b1p[j - 1] + SABER_N;
             }
-            io->recv_data(b0p, SABER_L * SABER_N * sizeof(uint16_t));
+            io->recv_data(*b0p, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
             // b1p = r - b0p;
             // for (int j = 0; j < SABER_L; ++j) {
@@ -91,14 +94,16 @@ class SaberOT: public OT<IO> {
             // compute b_0, b_1, send b_0, b_1
             uint16_t **b0 = new uint16_t*[SABER_L];
             uint16_t **b1 = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; ++j) {
-                b0[j] = new uint16_t[SABER_N];
-                b1[j] = new uint16_t[SABER_N];
+            *b0 = new uint16_t[SABER_L * SABER_N];
+            *b1 = new uint16_t[SABER_L * SABER_N];
+            for (int j = 1; j < SABER_L; ++j) {
+                b0[j] = b0[j - 1] + SABER_N;
+                b1[j] = b1[j - 1] + SABER_N;
             }
             RoundingMul(A, s0, b0, false);
             RoundingMul(A, s1, b1, false);
-            io->send_data(b0, SABER_L * SABER_N * sizeof(uint16_t));
-            io->send_data(b1, SABER_L * SABER_N * sizeof(uint16_t));
+            io->send_data(*b0, SABER_L * SABER_N * sizeof(uint16_t));
+            io->send_data(*b1, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
 
             // compute ciphertexts and send
@@ -129,34 +134,43 @@ class SaberOT: public OT<IO> {
                 v0[j] = Bits(v0[j], SABER_EP, 1);
                 v1[j] = Bits(v1[j], SABER_EP, 1);
             }
-            m[0] = Hash::hash_for_block(v0, SABER_N*2) ^ data0[i]; // TODO: hash
-            m[1] = Hash::hash_for_block(v1, SABER_N*2) ^ data1[i];
+            printf("send\n");
+            printf("data0: %d\n", *reinterpret_cast<const int*>(&data0[i]));
+            printf("data1: %d\n", *reinterpret_cast<const int*>(&data1[i]));
+            block a0 = Hash::hash_for_block(v0, SABER_N * 2) ^ data0[i];
+            block a1 = Hash::hash_for_block(v1, SABER_N * 2) ^ data1[i];
+            printf("a0: %d\n", *reinterpret_cast<int*>(&a0));
+            printf("a1: %d\n", *reinterpret_cast<int*>(&a1));
+            m[0] = Hash::hash_for_block(v0, SABER_N * 2) ^ data0[i];
+            m[1] = Hash::hash_for_block(v1, SABER_N * 2) ^ data1[i];
+            printf("m0: %d\n", *reinterpret_cast<int*>(&m[0]));
+            printf("m1: %d\n", *reinterpret_cast<int*>(&m[1]));
             io->send_data(m, 2 * sizeof(block));
             io->flush();
             for (int j = 0; j < SABER_L; ++j) {
                 delete[] s0[j];
                 delete[] s1[j];
-                delete[] b0p[j];
-                delete[] b1p[j];
-                delete[] b0[j];
-                delete[] b1[j];
             }
             delete[] s0;
             delete[] s1;
+            delete[] *b0p;
+            delete[] *b1p;
+            delete[] *b0;
+            delete[] *b1;
             delete[] b0p;
             delete[] b1p;
             delete[] b0;
             delete[] b1;
             delete[] cm0;
             delete[] cm1;
-            delete[] r;
         }
+        delete[] r;
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
         // receive r
         // all the length cases use the same r, from NPOT
-        uint16_t r[SABER_L][SABER_N];
+        uint16_t *r = new uint16_t[SABER_L * SABER_N];
         io->recv_data(r, SABER_L * SABER_N * sizeof(uint16_t));
         io->flush();
 
@@ -170,10 +184,14 @@ class SaberOT: public OT<IO> {
             uint8_t seed_s[SABER_NOISE_SEEDBYTES];
             uint16_t **b0p = new uint16_t*[SABER_L];
             uint16_t **b1p = new uint16_t*[SABER_L];
+            *b0p = new uint16_t[SABER_L * SABER_N];
+            *b1p = new uint16_t[SABER_L * SABER_N];
+            for (int j = 1; j < SABER_L; ++j) {
+                b0p[j] = b0p[j - 1] + SABER_N;
+                b1p[j] = b1p[j - 1] + SABER_N;
+            }
             for (int j = 0; j < SABER_L; ++j) {
                 sp[j] = new uint16_t[SABER_N];
-                b0p[j] = new uint16_t[SABER_N];
-                b1p[j] = new uint16_t[SABER_N];
             }
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(sp, seed_s);
@@ -182,7 +200,7 @@ class SaberOT: public OT<IO> {
                 // b0p = r - b1p;
                 for (int j = 0; j < SABER_L; ++j) {
                     for (int k = 0; k < SABER_N; ++k) {
-                        b0p[j][k] = r[j][k] - b1p[j][k];
+                        b0p[j][k] = r[j * SABER_N + k] - b1p[j][k];
                     }
                 }
             } else {
@@ -190,24 +208,26 @@ class SaberOT: public OT<IO> {
                 // b1p = r - b0p;
                 for (int j = 0; j < SABER_L; ++j) {
                     for (int k = 0; k < SABER_N; ++k) {
-                        b1p[j][k] = r[j][k] - b0p[j][k];
+                        b1p[j][k] = r[j * SABER_N + k] - b0p[j][k];
                     }
                 }
             }
             // send b'_0
-            io->send_data(b0p, SABER_L * SABER_N * sizeof(uint16_t));
+            io->send_data(*b0p, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
 
             // receive two b_0 and b_1
             uint16_t **b0 = new uint16_t*[SABER_L];
             uint16_t **b1 = new uint16_t*[SABER_L];
-
-            for (int j = 0; j < SABER_L; ++j) {
-                b0[j] = new uint16_t[SABER_N];
-                b1[j] = new uint16_t[SABER_N];
+            *b0 = new uint16_t[SABER_L * SABER_N];
+            *b1 = new uint16_t[SABER_L * SABER_N];
+            for (int j = 1; j < SABER_L; ++j) {
+                b0[j] = b0[j - 1] + SABER_N;
+                b1[j] = b1[j - 1] + SABER_N;
             }
-            io->recv_data(b0, SABER_L * SABER_N * sizeof(uint16_t));
-            io->recv_data(b1, SABER_L * SABER_N * sizeof(uint16_t));
+            io->recv_data(*b0, SABER_L * SABER_N * sizeof(uint16_t));
+            io->recv_data(*b1, SABER_L * SABER_N * sizeof(uint16_t));
+            io->flush();
 
             // receive two message block
             block m[2];
@@ -218,6 +238,9 @@ class SaberOT: public OT<IO> {
             io->flush();
             io->recv_data(m, 2 * sizeof(block));
             io->flush();
+            printf("recv\n");
+            printf("m0: %d\n", *reinterpret_cast<int*>(&m[0]));
+            printf("m1: %d\n", *reinterpret_cast<int*>(&m[1]));
             uint16_t* vp = new uint16_t[SABER_N];
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) { 
@@ -229,23 +252,27 @@ class SaberOT: public OT<IO> {
                 for (int j = 0; j < SABER_N; ++j) {
                     cm1[j] = Bits(vp[j] - (cm1[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
                 }
-                data[i] = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N);
+                block c0 = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N * 2);
+                printf("c0: %d\n", *reinterpret_cast<int*>(&c0));
+                data[i] = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N * 2);
             }
             else {
                 InnerProd_plush1(b0, sp, vp);
                 for (int j = 0; j < SABER_N; ++j) {
                     cm0[j] = Bits(vp[j] - (cm0[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
                 }
-                data[i] = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N);
+                block c1 = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
+                printf("c1: %d\n", *reinterpret_cast<int*>(&c1));
+                data[i] = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
             }
             for (int j = 0; j < SABER_L; ++j) {
                 delete[] sp[j];
-                delete[] b0p[j];
-                delete[] b1p[j];
-                delete[] b0[j];
-                delete[] b1[j];
             }
             delete[] sp;
+            delete[] *b0p;
+            delete[] *b1p;
+            delete[] *b0;
+            delete[] *b1;
             delete[] b0p;
             delete[] b1p;
             delete[] b0;
@@ -254,6 +281,7 @@ class SaberOT: public OT<IO> {
             delete[] cm1;
             delete[] vp;
         }
+        delete[] r;
     }
 };
 

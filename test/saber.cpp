@@ -11,6 +11,8 @@ int main(int argc, char** argv) {
         length = (1<<20) + 101;
     else
         length = (1<<atoi(argv[3])) + 101;
+    length = 1;
+    printf("ds length: %d\n", length);
 
     parse_party_and_port(argv, &party, &port);
     NetIO * io = new NetIO(party==ALICE ? nullptr:"127.0.0.1", port);

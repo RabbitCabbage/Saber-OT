@@ -5,6 +5,7 @@ using namespace emp;
 
 template <typename T>
 double test_ot(T * ot, NetIO *io, int party, int64_t length) {
+	printf("ds Testing OT\n");
 	block *b0 = new block[length], *b1 = new block[length],
 	*r = new block[length];
 	PRG prg(fix_key);
@@ -17,8 +18,10 @@ double test_ot(T * ot, NetIO *io, int party, int64_t length) {
 	auto start = clock_start();
 	if (party == ALICE) {
 		ot->send(b0, b1, length);
+		printf("ds Sent\n");
 	} else {
 		ot->recv(r, b, length);
+		printf("ds Received\n");
 	}
 	io->flush();
 	long long t = time_from(start);
