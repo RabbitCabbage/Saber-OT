@@ -15,33 +15,25 @@ template<typename IO>
 class SaberOT: public OT<IO> {
     public:
     IO* io;
-    uint8_t* seed_A; // [SABER_SEEDBYTES];
-    bool delete_seed_A = true;
 
     SaberOT(IO* io, uint8_t* _seed_A = nullptr) {
         this->io = io;
-        if (_seed_A == nullptr) {
-            seed_A = new uint8_t[SABER_SEEDBYTES];
-            randombytes(seed_A, SABER_SEEDBYTES);
-            shake128(seed_A, SABER_SEEDBYTES, seed_A, SABER_SEEDBYTES);
-        } else {
-            seed_A = _seed_A;
-            delete_seed_A = false;
-        }
     }
 
-    ~SaberOT() {
-        if (delete_seed_A) {
-            delete[] seed_A;
-        }
-    }
+    ~SaberOT() {}
 
     void send(const block* data0, const block* data1,int64_t length) override {
+        uint8_t seed_A[SABER_SEEDBYTES];
+        randombytes(seed_A, SABER_SEEDBYTES);
+        shake128(seed_A, SABER_SEEDBYTES, seed_A, SABER_SEEDBYTES);
+        // send seed_A
+        io->send_data(seed_A, SABER_SEEDBYTES);
+        io->flush();
+
         // first get the shared vector r, send r
         // uint16_t r[SABER_L][SABER_N];
         // uint16_t **r = new uint16_t*[SABER_L];
         uint16_t *r = new uint16_t[SABER_L * SABER_N];
-        // for (int i = 0; i < SABER_L; ++i) {
         //     r[i] = new uint16_t[SABER_N];
         // }
         randombytes((reinterpret_cast<unsigned char *>(r)), SABER_L * SABER_N * sizeof(uint16_t));
@@ -51,7 +43,10 @@ class SaberOT: public OT<IO> {
 
         // generate A
         uint16_t A[SABER_L][SABER_L][SABER_N];
-        GenMatrix(A, seed_A);        
+        GenMatrix(A, seed_A);    
+        // print the matrix A, check the correctness
+        // block a = Hash::hash_for_block(A, SABER_L * SABER_L * SABER_N * 2);
+        // std::cout << "send hash of A: " << *(reinterpret_cast<const uint64_t *>(&a)) << std::endl;
 
         for (int64_t i = 0; i < length; ++i) {
             // generate s_0, s_1 for the future v_0, v_1
@@ -80,11 +75,6 @@ class SaberOT: public OT<IO> {
             io->recv_data(*b0p, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
             // b1p = r - b0p;
-            // for (int j = 0; j < SABER_L; ++j) {
-            //     for (int k = 0; k < SABER_N; ++k) {
-            //         b1p[j][k] = r[j][k] - b0p[j][k];
-            //     }
-            // }
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) {
                     b1p[j][k] = r[j * SABER_N + k] - b0p[j][k];
@@ -100,8 +90,8 @@ class SaberOT: public OT<IO> {
                 b0[j] = b0[j - 1] + SABER_N;
                 b1[j] = b1[j - 1] + SABER_N;
             }
-            RoundingMul(A, s0, b0, false);
-            RoundingMul(A, s1, b1, false);
+            RoundingMul(A, s0, b0, 0);
+            RoundingMul(A, s1, b1, 0);
             io->send_data(*b0, SABER_L * SABER_N * sizeof(uint16_t));
             io->send_data(*b1, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
@@ -125,26 +115,41 @@ class SaberOT: public OT<IO> {
             for (int j = 0; j < SABER_N; ++j) {
                 cm0[j] = Bits(v0[j], SABER_EP - 1, SABER_ET);
                 cm1[j] = Bits(v1[j], SABER_EP - 1, SABER_ET);
-                io->send_data(cm0, SABER_N * sizeof(uint16_t));
-                io->flush();
-                io->send_data(cm1, SABER_N * sizeof(uint16_t));
-                io->flush();
             }
+            
+            // ================== debug ==================
+            block a0 = Hash::hash_for_block(cm0, SABER_N * 2);
+            block a1 = Hash::hash_for_block(cm1, SABER_N * 2);
+            std::cout << "sender cm0: " << *(reinterpret_cast<const uint64_t *>(&a0)) << std::endl;
+            std::cout << "sender cm1: " << *(reinterpret_cast<const uint64_t *>(&a1)) << std::endl;
+            block hash_v0 = Hash::hash_for_block(v0, SABER_N * 2);
+            block hash_v1 = Hash::hash_for_block(v1, SABER_N * 2);
+            std::cout << "sender v0: " << *(reinterpret_cast<const uint64_t *>(&hash_v0)) << std::endl;
+            std::cout << "sender v1: " << *(reinterpret_cast<const uint64_t *>(&hash_v1)) << std::endl;
+            // ============================================
+
+            io->send_data(cm0, SABER_N * sizeof(uint16_t));
+            io->flush();
+            io->send_data(cm1, SABER_N * sizeof(uint16_t));
+            io->flush();
             for (int j = 0; j < SABER_N; ++j) {
                 v0[j] = Bits(v0[j], SABER_EP, 1);
                 v1[j] = Bits(v1[j], SABER_EP, 1);
             }
-            printf("send\n");
-            printf("data0: %d\n", *reinterpret_cast<const int*>(&data0[i]));
-            printf("data1: %d\n", *reinterpret_cast<const int*>(&data1[i]));
-            block a0 = Hash::hash_for_block(v0, SABER_N * 2) ^ data0[i];
-            block a1 = Hash::hash_for_block(v1, SABER_N * 2) ^ data1[i];
-            printf("a0: %d\n", *reinterpret_cast<int*>(&a0));
-            printf("a1: %d\n", *reinterpret_cast<int*>(&a1));
             m[0] = Hash::hash_for_block(v0, SABER_N * 2) ^ data0[i];
             m[1] = Hash::hash_for_block(v1, SABER_N * 2) ^ data1[i];
-            printf("m0: %d\n", *reinterpret_cast<int*>(&m[0]));
-            printf("m1: %d\n", *reinterpret_cast<int*>(&m[1]));
+
+            // ================== debug ==================
+            hash_v0 = Hash::hash_for_block(v0, SABER_N * 2);
+            hash_v1 = Hash::hash_for_block(v1, SABER_N * 2);
+            std::cout << "sender v0->2: " << *(reinterpret_cast<const uint64_t *>(&hash_v0)) << std::endl;
+            std::cout << "sender v1->2: " << *(reinterpret_cast<const uint64_t *>(&hash_v1)) << std::endl;
+            std::cout << "sender data0: " << *(reinterpret_cast<const uint64_t *>(&data0[i])) << std::endl;
+            std::cout << "sender data1: " << *(reinterpret_cast<const uint64_t *>(&data1[i])) << std::endl;
+            std::cout << "sender m[0]: " << *(reinterpret_cast<const uint64_t *>(&m[0])) << std::endl;
+            std::cout << "sender m[1]: " << *(reinterpret_cast<const uint64_t *>(&m[1])) << std::endl;
+            // ============================================
+
             io->send_data(m, 2 * sizeof(block));
             io->flush();
             for (int j = 0; j < SABER_L; ++j) {
@@ -168,6 +173,11 @@ class SaberOT: public OT<IO> {
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
+        uint8_t seed_A[SABER_SEEDBYTES];
+        // receive seed_A
+        io->recv_data(seed_A, SABER_SEEDBYTES);
+        io->flush();
+        
         // receive r
         // all the length cases use the same r, from NPOT
         uint16_t *r = new uint16_t[SABER_L * SABER_N];
@@ -177,6 +187,8 @@ class SaberOT: public OT<IO> {
         // generate A
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);
+        // block a = Hash::hash_for_block(A, SABER_L * SABER_L * SABER_N * 2);
+        // std::cout << "recv hash of A: " << *(reinterpret_cast<const uint64_t *>(&a)) << std::endl;
 
         for (int64_t i = 0; i < length; ++i) {
             // generate two b' according to the bit x
@@ -196,7 +208,7 @@ class SaberOT: public OT<IO> {
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(sp, seed_s);
             if (x[i]) {
-                RoundingMul(A, sp, b1p, true);
+                RoundingMul(A, sp, b1p, 1);
                 // b0p = r - b1p;
                 for (int j = 0; j < SABER_L; ++j) {
                     for (int k = 0; k < SABER_N; ++k) {
@@ -204,7 +216,7 @@ class SaberOT: public OT<IO> {
                     }
                 }
             } else {
-                RoundingMul(A, sp, b0p, true);
+                RoundingMul(A, sp, b0p, 1);
                 // b1p = r - b0p;
                 for (int j = 0; j < SABER_L; ++j) {
                     for (int k = 0; k < SABER_N; ++k) {
@@ -238,32 +250,51 @@ class SaberOT: public OT<IO> {
             io->flush();
             io->recv_data(m, 2 * sizeof(block));
             io->flush();
-            printf("recv\n");
-            printf("m0: %d\n", *reinterpret_cast<int*>(&m[0]));
-            printf("m1: %d\n", *reinterpret_cast<int*>(&m[1]));
+
+            // ================== debug ==================
+            block a0 = Hash::hash_for_block(cm0, SABER_N * 2);
+            block a1 = Hash::hash_for_block(cm1, SABER_N * 2);
+            std::cout << "recver cm0: " << *(reinterpret_cast<const uint64_t *>(&a0)) << std::endl;
+            std::cout << "recver cm1: " << *(reinterpret_cast<const uint64_t *>(&a1)) << std::endl;
+            std::cout << "recver m[0]: " << *(reinterpret_cast<const uint64_t *>(&m[0])) << std::endl;
+            std::cout << "recver m[1]: " << *(reinterpret_cast<const uint64_t *>(&m[1])) << std::endl;
+            // ============================================
+
             uint16_t* vp = new uint16_t[SABER_N];
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) { 
                     sp[j][k] = Bits(sp[j][k], SABER_EP, SABER_EP);
                 }
             }
-            if(x) {
+            if(x[i]) {
                 InnerProd_plush1(b1, sp, vp);
                 for (int j = 0; j < SABER_N; ++j) {
                     cm1[j] = Bits(vp[j] - (cm1[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
                 }
-                block c0 = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N * 2);
-                printf("c0: %d\n", *reinterpret_cast<int*>(&c0));
                 data[i] = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N * 2);
+
+                // ================== debug ==================
+                block hash_cm1 = Hash::hash_for_block(cm1, SABER_N * 2);
+                std::cout << "recver cm1->2: " << *(reinterpret_cast<const uint64_t *>(&hash_cm1)) << std::endl;
+                // block c1 = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N * 2);
+                // std::cout << "recv hash1: " << *(reinterpret_cast<const uint64_t *>(&c1)) << std::endl;
+                std::cout << "recver x = 1, data[i]: " << *(reinterpret_cast<const uint64_t *>(&data[i])) << std::endl;
+                // ============================================
             }
             else {
                 InnerProd_plush1(b0, sp, vp);
                 for (int j = 0; j < SABER_N; ++j) {
                     cm0[j] = Bits(vp[j] - (cm0[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
                 }
-                block c1 = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
-                printf("c1: %d\n", *reinterpret_cast<int*>(&c1));
                 data[i] = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
+
+                // ================== debug ==================
+                block hash_cm0 = Hash::hash_for_block(cm0, SABER_N * 2);
+                std::cout << "recver cm0->2: " << *(reinterpret_cast<const uint64_t *>(&hash_cm0)) << std::endl;
+                // block c0 = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
+                // std::cout << "recv hash0: " << *(reinterpret_cast<const uint64_t *>(&c0)) << std::endl;
+                std::cout << "recver x = 0, data[i]: " << *(reinterpret_cast<const uint64_t *>(&data[i])) << std::endl;
+                // ============================================
             }
             for (int j = 0; j < SABER_L; ++j) {
                 delete[] sp[j];
