@@ -96,6 +96,9 @@ class SaberOT: public OT<IO> {
                 b0[j] = b0[j - 1] + SABER_N;
                 b1[j] = b1[j - 1] + SABER_N;
             }
+            // memsset to 0!!!
+            // memset(b0, 0, SABER_L * SABER_N * sizeof(uint16_t));
+            // memset(b1, 0, SABER_L * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s0, b0, 0);
             RoundingMul(A, s1, b1, 0);
             io->send_data(*b0, SABER_L * SABER_N * sizeof(uint16_t));
@@ -114,6 +117,9 @@ class SaberOT: public OT<IO> {
             uint16_t *cm1 = new uint16_t[SABER_N];
             uint16_t v0[SABER_N];
             uint16_t v1[SABER_N];
+            // memsset to 0!!! v must be initialized to 0
+            memset(v0, 0, SABER_N * sizeof(uint16_t));
+            memset(v1, 0, SABER_N * sizeof(uint16_t));
             // Bits(s0[j][k],SABER_EP,SABER_EP)
             for(int j = 0; j < SABER_L; ++j) {
                 for(int k = 0; k < SABER_N; ++k) {
@@ -215,6 +221,9 @@ class SaberOT: public OT<IO> {
                 b0p[j] = b0p[j - 1] + SABER_N;
                 b1p[j] = b1p[j - 1] + SABER_N;
             }
+            // memsset to 0!!!
+            // memset(b0p, 0, SABER_L * SABER_N * sizeof(uint16_t));
+            // memset(b1p, 0, SABER_L * SABER_N * sizeof(uint16_t));
             for (int j = 0; j < SABER_L; ++j) {
                 sp[j] = new uint16_t[SABER_N];
             }
@@ -289,6 +298,7 @@ class SaberOT: public OT<IO> {
             // ============================================
 
             uint16_t* vp = new uint16_t[SABER_N];
+            memset(vp, 0, SABER_N * sizeof(uint16_t));
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) { 
                     sp[j][k] = Bits(sp[j][k], SABER_EP, SABER_EP);

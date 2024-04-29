@@ -85,7 +85,7 @@ void InnerProd_plush1( uint16_t **b,  uint16_t **s, uint16_t *res) {
 	// res += Bits(h1,SABER_EP,SABER_EP);
 	uint16_t h1_bits = Bits(h1, SABER_EP, SABER_EP);
 	for (int i = 0; i < SABER_N; i++) {
-		res[i] = res[i] + h1_bits;
+		res[i] = (res[i] + h1_bits) & ((1 << SABER_EP) - 1);
 	}
 	return;
 }

@@ -35,6 +35,7 @@ int main(){
 
     // Generate A
     randombytes(seed_A, SABER_SEEDBYTES);
+    shake128(seed_A, SABER_SEEDBYTES, seed_A, SABER_SEEDBYTES);
     GenMatrix(A, seed_A);
     randombytes(seed_s, SABER_NOISE_SEEDBYTES);
     GenSecret(s0, seed_s);
@@ -82,6 +83,8 @@ int main(){
     uint16_t cm1[SABER_N];
     uint16_t v0[SABER_N];
     uint16_t v1[SABER_N];
+    memset(v0, 0, SABER_N * sizeof(uint16_t));
+    memset(v1, 0, SABER_N * sizeof(uint16_t));
     for(int j = 0; j < SABER_L; ++j) {
         for(int k = 0; k < SABER_N; ++k) {
             s0[j][k] = Bits(s0[j][k], SABER_EP, SABER_EP);
@@ -94,6 +97,8 @@ int main(){
     for (int j = 0; j < SABER_N; ++j) {
         cm0[j] = Bits(v0[j], SABER_EP - 1, SABER_ET);
         cm1[j] = Bits(v1[j], SABER_EP - 1, SABER_ET);
+        // cm0[j] = Bits(v0[j], SABER_EP, SABER_ET + 1);
+        // cm1[j] = Bits(v1[j], SABER_EP, SABER_ET + 1);
     }
     for (int j = 0; j < SABER_N; ++j) {
         v0[j] = Bits(v0[j], SABER_EP, 1);
@@ -101,11 +106,12 @@ int main(){
     }
     emp::block hash_v0 = emp::Hash::hash_for_block(v0, SABER_N * 2);
     emp::block hash_v1 = emp::Hash::hash_for_block(v1, SABER_N * 2);
-    std::cout << "hash_v0: " << *reinterpret_cast<const uint64_t *>(v0) << std::endl;
-    std::cout << "hash_v1: " << *reinterpret_cast<const uint64_t *>(v1) << std::endl;
+    std::cout << "hash_v0: " << *reinterpret_cast<const uint64_t *>(&hash_v0) << std::endl;
+    std::cout << "hash_v1: " << *reinterpret_cast<const uint64_t *>(&hash_v1) << std::endl;
 
     // simulate the receiver
     uint16_t vp[SABER_N];
+    memset(vp, 0, SABER_N * sizeof(uint16_t));
     for (int j = 0; j < SABER_L; ++j) {
         for (int k = 0; k < SABER_N; ++k) { 
             sp[j][k] = Bits(sp[j][k], SABER_EP, SABER_EP);
@@ -117,7 +123,7 @@ int main(){
             cm1[j] = Bits(vp[j] - (cm1[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
         }
         emp::block hash_cm1 = emp::Hash::hash_for_block(cm1, SABER_N * 2);
-        std::cout << "hash_cm1: " << *reinterpret_cast<const uint64_t *>(cm1) << std::endl;
+        std::cout << "hash_cm1: " << *reinterpret_cast<const uint64_t *>(&hash_cm1) << std::endl;
         // check v1 and cm1
         for (int j = 0; j < SABER_N; ++j) {
             if (v1[j] != cm1[j]) {
@@ -130,7 +136,7 @@ int main(){
             cm0[j] = Bits(vp[j] - (cm0[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
         }
         emp::block hash_cm0 = emp::Hash::hash_for_block(cm0, SABER_N * 2);
-        std::cout << "hash_cm0: " << *reinterpret_cast<const uint64_t *>(cm0) << std::endl;
+        std::cout << "hash_cm0: " << *reinterpret_cast<const uint64_t *>(&hash_cm0) << std::endl;
         // check v0 and cm0
         for (int j = 0; j < SABER_N; ++j) {
             if (v0[j] != cm0[j]) {
