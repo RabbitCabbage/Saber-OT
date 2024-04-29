@@ -34,8 +34,7 @@ class SaberOT: public OT<IO> {
         // uint16_t r[SABER_L][SABER_N];
         // uint16_t **r = new uint16_t*[SABER_L];
         uint16_t *r = new uint16_t[SABER_L * SABER_N];
-        //     r[i] = new uint16_t[SABER_N];
-        // }
+
         randombytes((reinterpret_cast<unsigned char *>(r)), SABER_L * SABER_N * sizeof(uint16_t));
         // shake128((unsigned char *)r, SABER_L * SABER_N * sizeof(uint16_t), (unsigned char *)r, SABER_L * SABER_N * sizeof(uint16_t));
         io->send_data(r, SABER_L * SABER_N * sizeof(uint16_t));
@@ -79,7 +78,14 @@ class SaberOT: public OT<IO> {
                 for (int k = 0; k < SABER_N; ++k) {
                     b1p[j][k] = r[j * SABER_N + k] - b0p[j][k];
                 }
-            }   
+            }
+
+            // ================== debug ==================
+            block hash_b0p = Hash::hash_for_block(*b0p, SABER_L * SABER_N * 2);
+            block hash_b1p = Hash::hash_for_block(*b1p, SABER_L * SABER_N * 2);
+            std::cout << "sender b0p: " << *(reinterpret_cast<const uint64_t *>(&hash_b0p)) << std::endl;
+            std::cout << "sender b1p: " << *(reinterpret_cast<const uint64_t *>(&hash_b1p)) << std::endl;
+            // ============================================
 
             // compute b_0, b_1, send b_0, b_1
             uint16_t **b0 = new uint16_t*[SABER_L];
@@ -95,6 +101,13 @@ class SaberOT: public OT<IO> {
             io->send_data(*b0, SABER_L * SABER_N * sizeof(uint16_t));
             io->send_data(*b1, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
+
+            // ================== debug ==================
+            block hash_b0 = Hash::hash_for_block(*b0, SABER_L * SABER_N * 2);
+            block hash_b1 = Hash::hash_for_block(*b1, SABER_L * SABER_N * 2);
+            std::cout << "sender b0: " << *(reinterpret_cast<const uint64_t *>(&hash_b0)) << std::endl;
+            std::cout << "sender b1: " << *(reinterpret_cast<const uint64_t *>(&hash_b1)) << std::endl;
+            // ============================================
 
             // compute ciphertexts and send
             uint16_t *cm0 = new uint16_t[SABER_N];
@@ -224,6 +237,14 @@ class SaberOT: public OT<IO> {
                     }
                 }
             }
+
+            // ================== debug ==================
+            block hash_b0p = Hash::hash_for_block(*b0p, SABER_L * SABER_N * 2);
+            block hash_b1p = Hash::hash_for_block(*b1p, SABER_L * SABER_N * 2);
+            std::cout << "recver b0p: " << *(reinterpret_cast<const uint64_t *>(&hash_b0p)) << std::endl;
+            std::cout << "recver b1p: " << *(reinterpret_cast<const uint64_t *>(&hash_b1p)) << std::endl;
+            // ============================================
+
             // send b'_0
             io->send_data(*b0p, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
@@ -240,6 +261,13 @@ class SaberOT: public OT<IO> {
             io->recv_data(*b0, SABER_L * SABER_N * sizeof(uint16_t));
             io->recv_data(*b1, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
+
+            // ================== debug ==================
+            block hash_b0 = Hash::hash_for_block(*b0, SABER_L * SABER_N * 2);
+            block hash_b1 = Hash::hash_for_block(*b1, SABER_L * SABER_N * 2);
+            std::cout << "recver b0: " << *(reinterpret_cast<const uint64_t *>(&hash_b0)) << std::endl;
+            std::cout << "recver b1: " << *(reinterpret_cast<const uint64_t *>(&hash_b1)) << std::endl;
+            // ============================================
 
             // receive two message block
             block m[2];
