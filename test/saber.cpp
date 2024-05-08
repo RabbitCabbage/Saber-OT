@@ -19,7 +19,10 @@ int main(int argc, char** argv) {
     cout <<"128 NPOTs:\t"<<test_ot<OTNP<NetIO>>(np, io, party, 128)<<" us"<<endl;
 
     SaberOT<NetIO> *saberot = new SaberOT<NetIO>(io);
-    cout <<"128 SaberOTs:\t"<<test_ot<SaberOT<NetIO>>(saberot, io, party, 128)<<" us"<<endl;
+    cout <<"128 NP Saber OTs:\t"<<test_ot<SaberOT<NetIO>>(saberot, io, party, 128)<<" us"<<endl;
+
+    SimpleSaber<NetIO> *simplesaber = new SimpleSaber<NetIO>(io);
+    cout <<"128 Simplest Saber OTs:\t"<<test_ot<SimpleSaber<NetIO>>(simplesaber, io, party, 128)<<" us"<<endl;
 
 	// cout <<"Passive SABER OT\t"<<double(length)/test_ot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
 
@@ -36,6 +39,7 @@ int main(int argc, char** argv) {
 
     delete np;
     delete saberot;
+    delete simplesaber;
     delete io;
     return 0;
 }

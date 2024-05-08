@@ -1,22 +1,26 @@
 [
 {
   "directory": "/mnt/d/Desktop/Saber-OT/test",
-  "command": "/usr/bin/c++  -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT    -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g   -fsanitize=address -o CMakeFiles/test_saber.dir/saber.cpp.o -c /mnt/d/Desktop/Saber-OT/test/saber.cpp",
-  "file": "/mnt/d/Desktop/Saber-OT/test/saber.cpp"
+  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g -fsanitize=address -o CMakeFiles/test_ot.dir/ot.cpp.o -c /mnt/d/Desktop/Saber-OT/test/ot.cpp",
+  "file": "/mnt/d/Desktop/Saber-OT/test/ot.cpp",
+  "output": "test/CMakeFiles/test_ot.dir/ot.cpp.o"
 },
 {
   "directory": "/mnt/d/Desktop/Saber-OT/test",
-  "command": "/usr/bin/c++  -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT    -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g   -fsanitize=address -o CMakeFiles/test_bench_lpn.dir/bench_lpn.cpp.o -c /mnt/d/Desktop/Saber-OT/test/bench_lpn.cpp",
-  "file": "/mnt/d/Desktop/Saber-OT/test/bench_lpn.cpp"
+  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g -fsanitize=address -o CMakeFiles/test_ferret.dir/ferret.cpp.o -c /mnt/d/Desktop/Saber-OT/test/ferret.cpp",
+  "file": "/mnt/d/Desktop/Saber-OT/test/ferret.cpp",
+  "output": "test/CMakeFiles/test_ferret.dir/ferret.cpp.o"
 },
 {
   "directory": "/mnt/d/Desktop/Saber-OT/test",
-  "command": "/usr/bin/c++  -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT    -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g   -fsanitize=address -o CMakeFiles/test_ferret.dir/ferret.cpp.o -c /mnt/d/Desktop/Saber-OT/test/ferret.cpp",
-  "file": "/mnt/d/Desktop/Saber-OT/test/ferret.cpp"
+  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g -fsanitize=address -o CMakeFiles/test_bench_lpn.dir/bench_lpn.cpp.o -c /mnt/d/Desktop/Saber-OT/test/bench_lpn.cpp",
+  "file": "/mnt/d/Desktop/Saber-OT/test/bench_lpn.cpp",
+  "output": "test/CMakeFiles/test_bench_lpn.dir/bench_lpn.cpp.o"
 },
 {
   "directory": "/mnt/d/Desktop/Saber-OT/test",
-  "command": "/usr/bin/c++  -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT    -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g   -fsanitize=address -o CMakeFiles/test_ot.dir/ot.cpp.o -c /mnt/d/Desktop/Saber-OT/test/ot.cpp",
-  "file": "/mnt/d/Desktop/Saber-OT/test/ot.cpp"
+  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/mnt/d/Desktop/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -g -fsanitize=address -o CMakeFiles/test_saber.dir/saber.cpp.o -c /mnt/d/Desktop/Saber-OT/test/saber.cpp",
+  "file": "/mnt/d/Desktop/Saber-OT/test/saber.cpp",
+  "output": "test/CMakeFiles/test_saber.dir/saber.cpp.o"
 }
 ]

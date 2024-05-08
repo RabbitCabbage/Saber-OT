@@ -4,5 +4,6 @@
 #include "emp-ot/np.h"
 #include "emp-ot/iknp.h"
 #include "emp-ot/saber/saberot.h"
+#include "emp-ot/saber/simplesaber.h"
 
 #include "emp-ot/ferret/ferret_cot.h"
