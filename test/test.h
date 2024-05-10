@@ -15,7 +15,8 @@ double test_ot(T * ot, NetIO *io, int party, int64_t length) {
 	PRG prg2;
 	prg2.random_bool(b, length);
 
-	auto start = clock_start();
+	// auto start = clock_start();
+	auto start = std::chrono::high_resolution_clock::now();
 	if (party == ALICE) {
 		ot->send(b0, b1, length);
 		// printf("ds Sent\n");
@@ -24,7 +25,9 @@ double test_ot(T * ot, NetIO *io, int party, int64_t length) {
 		// printf("ds Received\n");
 	}
 	io->flush();
-	long long t = time_from(start);
+	// long long t = time_from(start);
+	auto end = std::chrono::high_resolution_clock::now();
+	auto t = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	if (party == BOB) {
 		for (int64_t i = 0; i < length; ++i) {
 			if (b[i]){ if(!cmpBlock(&r[i], &b1[i], 1)) {

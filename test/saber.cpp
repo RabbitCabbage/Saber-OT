@@ -16,13 +16,13 @@ int main(int argc, char** argv) {
     NetIO * io = new NetIO(party==ALICE ? nullptr:"127.0.0.1", port);
 
     OTNP<NetIO> * np = new OTNP<NetIO>(io); 
-    cout <<"128 NPOTs:\t"<<test_ot<OTNP<NetIO>>(np, io, party, 128)<<" us"<<endl;
+    cout <<"128 NPOTs:\t"<<test_ot<OTNP<NetIO>>(np, io, party, 128)<<" ms"<<endl;
 
     SaberOT<NetIO> *saberot = new SaberOT<NetIO>(io);
-    cout <<"128 NP Saber OTs:\t"<<test_ot<SaberOT<NetIO>>(saberot, io, party, 128)<<" us"<<endl;
+    cout <<"128 NP Saber OTs:\t"<<test_ot<SaberOT<NetIO>>(saberot, io, party, 128)<<" ms"<<endl;
 
     SimpleSaber<NetIO> *simplesaber = new SimpleSaber<NetIO>(io);
-    cout <<"128 Simplest Saber OTs:\t"<<test_ot<SimpleSaber<NetIO>>(simplesaber, io, party, 128)<<" us"<<endl;
+    cout <<"128 Simplest Saber OTs:\t"<<test_ot<SimpleSaber<NetIO>>(simplesaber, io, party, 128)<<" ms"<<endl;
 
 	// cout <<"Passive SABER OT\t"<<double(length)/test_ot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
 

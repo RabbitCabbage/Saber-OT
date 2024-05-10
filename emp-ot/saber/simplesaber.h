@@ -34,19 +34,24 @@ class SimpleSaber: public OT<IO>{
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);
 
+        uint16_t **s = new uint16_t*[SABER_L];
+        for (int j = 0; j < SABER_L; j++) {
+            s[j] = new uint16_t[SABER_N];
+        }
+        // compute b
+        uint16_t **b = new uint16_t*[SABER_L];
+        *b = new uint16_t[SABER_L * SABER_N];
+        // receive b'
+        uint16_t **bp = new uint16_t*[SABER_L];
+        *bp = new uint16_t[SABER_L * SABER_N];
+
+
         for (int64_t i = 0; i < length; i++) {
             // generate secret
             uint8_t seed_s[SABER_NOISE_SEEDBYTES];
-            uint16_t **s = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; j++) {
-                s[j] = new uint16_t[SABER_N];
-            }
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(s, seed_s);
 
-            // compute b
-            uint16_t **b = new uint16_t*[SABER_L];
-            *b = new uint16_t[SABER_L * SABER_N];
             memset(*b, 0, SABER_L * SABER_N * sizeof(uint16_t));
             for (int j = 1; j < SABER_L; j++) {
                 b[j] = b[j - 1] + SABER_N;
@@ -55,9 +60,6 @@ class SimpleSaber: public OT<IO>{
             io->send_data(*b, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
 
-            // receive b'
-            uint16_t **bp = new uint16_t*[SABER_L];
-            *bp = new uint16_t[SABER_L * SABER_N];
             memset(*bp, 0, SABER_L * SABER_N * sizeof(uint16_t));
             for (int j = 1; j < SABER_L; j++) {
                 bp[j] = bp[j - 1] + SABER_N;
@@ -106,15 +108,15 @@ class SimpleSaber: public OT<IO>{
             
             io->send_data(m, 2 * sizeof(block));
             io->flush();
-            for (int j = 0; j < SABER_L; ++j) {
-                delete[] s[j];
-            }
-            delete[] s;
-            delete[] *b;
-            delete[] *bp;
-            delete[] b;
-            delete[] bp;
         }
+        for (int j = 0; j < SABER_L; ++j) {
+            delete[] s[j];
+        }
+        delete[] s;
+        delete[] *b;
+        delete[] *bp;
+        delete[] b;
+        delete[] bp;
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
@@ -125,11 +127,21 @@ class SimpleSaber: public OT<IO>{
         // generate A
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);
+        // receive b
+        uint16_t **b = new uint16_t*[SABER_L];
+        *b = new uint16_t[SABER_L * SABER_N];
+        uint16_t **sp = new uint16_t*[SABER_L];
+        for (int j = 0; j < SABER_L; j++) {
+            sp[j] = new uint16_t[SABER_N];
+        }
+        // compute b'
+        uint16_t **bp = new uint16_t*[SABER_L];
+        *bp = new uint16_t[SABER_L * SABER_N];
+        uint16_t* vp = new uint16_t[SABER_N];
+        uint16_t *cm0 = new uint16_t[SABER_N];
+        uint16_t *cm1 = new uint16_t[SABER_N];
 
         for (int64_t i = 0; i < length; i++) {
-            // receive b
-            uint16_t **b = new uint16_t*[SABER_L];
-            *b = new uint16_t[SABER_L * SABER_N];
             memset(*b, 0, SABER_L * SABER_N * sizeof(uint16_t));
             for (int j = 1; j < SABER_L; j++) {
                 b[j] = b[j - 1] + SABER_N;
@@ -139,16 +151,9 @@ class SimpleSaber: public OT<IO>{
 
             // generate secret s'
             uint8_t seed_s[SABER_NOISE_SEEDBYTES];
-            uint16_t **sp = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; j++) {
-                sp[j] = new uint16_t[SABER_N];
-            }
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(sp, seed_s);
 
-            // compute b'
-            uint16_t **bp = new uint16_t*[SABER_L];
-            *bp = new uint16_t[SABER_L * SABER_N];
             memset(*bp, 0, SABER_L * SABER_N * sizeof(uint16_t));
             for (int j = 1; j < SABER_L; j++) {
                 bp[j] = bp[j - 1] + SABER_N;
@@ -165,7 +170,6 @@ class SimpleSaber: public OT<IO>{
             io->flush();
 
             // compute vp
-            uint16_t* vp = new uint16_t[SABER_N];
             memset(vp, 0, SABER_N * sizeof(uint16_t));
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) { 
@@ -175,8 +179,6 @@ class SimpleSaber: public OT<IO>{
             InnerProd_plush1(b, sp, vp);
             // recv cm0 cm1 e0 e1
             block m[2];
-            uint16_t *cm0 = new uint16_t[SABER_N];
-            uint16_t *cm1 = new uint16_t[SABER_N];
             memset(cm0, 0, SABER_N * sizeof(uint16_t));
             memset(cm1, 0, SABER_N * sizeof(uint16_t));
             io->recv_data(cm0, SABER_N * sizeof(uint16_t));
@@ -195,18 +197,18 @@ class SimpleSaber: public OT<IO>{
                 }
                 data[i] = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
             }
-            for (int j = 0; j < SABER_L; ++j) {
-                delete[] sp[j];
-            }
-            delete[] sp;
-            delete[] *b;
-            delete[] *bp;
-            delete[] b;
-            delete[] bp;
-            delete[] cm0;
-            delete[] cm1;
-            delete[] vp;
         }
+        for (int j = 0; j < SABER_L; ++j) {
+            delete[] sp[j];
+        }
+        delete[] sp;
+        delete[] *b;
+        delete[] *bp;
+        delete[] b;
+        delete[] bp;
+        delete[] cm0;
+        delete[] cm1;
+        delete[] vp;
     }
 };
 }
