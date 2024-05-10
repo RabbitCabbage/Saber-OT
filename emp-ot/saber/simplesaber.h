@@ -84,7 +84,8 @@ class SimpleSaber: public OT<IO>{
             InnerProd_plush1(bp, s, v0);
             for (int j = 0; j < SABER_L; j++) {
                 for (int k = 0; k < SABER_N; k++) {
-                    bp[j][k] = bp[j][k] - b[j][k];
+                    // bp[j][k] = bp[j][k] - b[j][k];
+                    bp[j][k] = Bits(bp[j][k] - b[j][k], SABER_EP, SABER_EP);
                 }
             }
             InnerProd_plush1(bp, s, v1);
@@ -159,13 +160,15 @@ class SimpleSaber: public OT<IO>{
                 bp[j] = bp[j - 1] + SABER_N;
             }
             RoundingMul(A, sp, bp, 1);
-            if (x[i]) {
+            // keep constant time
+            // if (x[i]) {
                 for (int j = 0; j < SABER_L; j++) {
                     for (int k = 0; k < SABER_N; k++) {
-                        bp[j][k] = bp[j][k] + b[j][k];
+                        // bp[j][k] = bp[j][k] + b[j][k];
+                        bp[j][k] = Bits(bp[j][k] + x[i] * b[j][k], SABER_EP, SABER_EP);                    
                     }
                 }
-            }
+            // }
             io->send_data(*bp, SABER_L * SABER_N * sizeof(uint16_t));
             io->flush();
 
