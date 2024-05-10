@@ -15,6 +15,9 @@ int main(int argc, char** argv) {
     parse_party_and_port(argv, &party, &port);
     NetIO * io = new NetIO(party==ALICE ? nullptr:"127.0.0.1", port);
 
+    OTCO<NetIO> * co = new OTCO<NetIO>(io);
+    cout <<"128 COOTs:\t"<<test_ot<OTCO<NetIO>>(co, io, party, 128)<<" ms"<<endl;
+
     OTNP<NetIO> * np = new OTNP<NetIO>(io); 
     cout <<"128 NPOTs:\t"<<test_ot<OTNP<NetIO>>(np, io, party, 128)<<" ms"<<endl;
 
@@ -41,5 +44,6 @@ int main(int argc, char** argv) {
     delete saberot;
     delete simplesaber;
     delete io;
+    delete co;
     return 0;
 }
