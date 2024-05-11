@@ -1,24 +1,6 @@
 [
 {
   "directory": "/home/sharon/Documents/Saber-OT/test",
-  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/home/sharon/Documents/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -O3 -O3 -DNDEBUG -fsanitize=address -o CMakeFiles/test_ot.dir/ot.cpp.o -c /home/sharon/Documents/Saber-OT/test/ot.cpp",
-  "file": "/home/sharon/Documents/Saber-OT/test/ot.cpp",
-  "output": "test/CMakeFiles/test_ot.dir/ot.cpp.o"
-},
-{
-  "directory": "/home/sharon/Documents/Saber-OT/test",
-  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/home/sharon/Documents/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -O3 -O3 -DNDEBUG -fsanitize=address -o CMakeFiles/test_ferret.dir/ferret.cpp.o -c /home/sharon/Documents/Saber-OT/test/ferret.cpp",
-  "file": "/home/sharon/Documents/Saber-OT/test/ferret.cpp",
-  "output": "test/CMakeFiles/test_ferret.dir/ferret.cpp.o"
-},
-{
-  "directory": "/home/sharon/Documents/Saber-OT/test",
-  "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/home/sharon/Documents/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -O3 -O3 -DNDEBUG -fsanitize=address -o CMakeFiles/test_bench_lpn.dir/bench_lpn.cpp.o -c /home/sharon/Documents/Saber-OT/test/bench_lpn.cpp",
-  "file": "/home/sharon/Documents/Saber-OT/test/bench_lpn.cpp",
-  "output": "test/CMakeFiles/test_bench_lpn.dir/bench_lpn.cpp.o"
-},
-{
-  "directory": "/home/sharon/Documents/Saber-OT/test",
   "command": "/usr/bin/c++ -DEMP_CIRCUIT_PATH=/usr/local/include/emp-tool/circuits/files/ -I/home/sharon/Documents/Saber-OT   -pthread -Wall -funroll-loops -Wno-ignored-attributes -Wno-unused-result -march=native -maes -mrdseed -std=c++11 -O3 -O3 -DNDEBUG -fsanitize=address -o CMakeFiles/test_saber.dir/saber.cpp.o -c /home/sharon/Documents/Saber-OT/test/saber.cpp",
   "file": "/home/sharon/Documents/Saber-OT/test/saber.cpp",
   "output": "test/CMakeFiles/test_saber.dir/saber.cpp.o"

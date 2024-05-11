@@ -135,6 +135,9 @@ class SimpleSaber: public OT<IO>{
         delete[] cm1;
         delete[] v0;
         delete[] v1;
+        delete[] s;
+        delete[] b;
+        delete[] bp;
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
@@ -245,6 +248,9 @@ class SimpleSaber: public OT<IO>{
         delete[] cm0;
         delete[] cm1;
         delete[] vp;
+        delete[] b;
+        delete[] bp;
+        delete[] sp;
     }
 };
 }
