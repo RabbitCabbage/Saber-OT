@@ -40,18 +40,6 @@ int main(int argc, char** argv) {
 	cout <<"Active FERRET COT\t"<<double(length)/test_cot<FerretCOT<NetIO>>(ferretcot, io, party, length)*1e6<<" OTps"<<endl;
 	cout <<"Active FERRET ROT\t"<<double(length)/test_rot<FerretCOT<NetIO>>(ferretcot, io, party, length)*1e6<<" OTps"<<endl;
 	delete ferretcot;
-
-	// SaberOT<NetIO> *saberot = new SaberOT<NetIO>(io);
-	// cout <<"Passive SABER OT\t"<<double(length)/test_ot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
-	// // cout <<"Passive SABER COT\t"<<double(length)/test_cot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
-	// // cout <<"Passive SABER ROT\t"<<double(length)/test_rot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
-	// delete saberot;
-	// saberot = new SaberOT<NetIO>(io);
-	// cout <<"Active SABER OT\t"<<double(length)/test_ot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
-	// // cout <<"Active SABER COT\t"<<double(length)/test_cot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
-	// // cout <<"Active SABER ROT\t"<<double(length)/test_rot<SaberOT<NetIO>>(saberot, io, party, length)*1e6<<" OTps"<<endl;
-	// delete saberot;
-
 	delete io;
 }
 

@@ -1,5 +1,7 @@
-#ifndef SaberOT_H__
-#define SaberOT_H__
+// Naor Pinkas Saber OT with one secrets
+// Naor-Pinkas Saber OT with two secrets
+#ifndef NPSaber_v2_H__
+#define NPSaber_v2_H__
 #include "emp-ot/saber/api.h"
 #include "emp-ot/saber/cbd.h"
 #include "emp-ot/saber/fips202.h"
@@ -12,15 +14,15 @@
 
 namespace emp {
 template<typename IO>
-class SaberOT: public OT<IO> {
+class NPSaber2: public OT<IO> {
     public:
     IO* io;
 
-    SaberOT(IO* io, uint8_t* _seed_A = nullptr) {
+    NPSaber2(IO* io, uint8_t* _seed_A = nullptr) {
         this->io = io;
     }
 
-    ~SaberOT() {
+    ~NPSaber2() {
 
     }
 
@@ -47,13 +49,13 @@ class SaberOT: public OT<IO> {
         // generate s_0, s_1 for the future v_0, v_1
         // initialize s_0, s_1
         uint16_t ***s0 = new uint16_t**[length];
-        uint16_t ***s1 = new uint16_t**[length];
+        // uint16_t ***s1 = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
             s0[i] = new uint16_t*[SABER_L];
-            s1[i] = new uint16_t*[SABER_L];
+            // s1[i] = new uint16_t*[SABER_L];
             for (int j = 0; j < SABER_L; j++) {
                 s0[i][j] = new uint16_t[SABER_N];
-                s1[i][j] = new uint16_t[SABER_N];
+                // s1[i][j] = new uint16_t[SABER_N];
             }
         }
 
@@ -71,15 +73,15 @@ class SaberOT: public OT<IO> {
         }
 
         uint16_t ***b0 = new uint16_t**[length];
-        uint16_t ***b1 = new uint16_t**[length];
+        // uint16_t ***b1 = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
             b0[i] = new uint16_t*[SABER_L];
-            b1[i] = new uint16_t*[SABER_L];
+            // b1[i] = new uint16_t*[SABER_L];
             *b0[i] = new uint16_t[SABER_L * SABER_N];
-            *b1[i] = new uint16_t[SABER_L * SABER_N];
+            // *b1[i] = new uint16_t[SABER_L * SABER_N];
             for (int j = 1; j < SABER_L; j++) {
                 b0[i][j] = b0[i][j - 1] + SABER_N;
-                b1[i][j] = b1[i][j - 1] + SABER_N;
+                // b1[i][j] = b1[i][j - 1] + SABER_N;
             }
         }
 
@@ -92,8 +94,8 @@ class SaberOT: public OT<IO> {
         for (int64_t i = 0; i < length; ++i) {
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(s0[i], seed_s);
-            randombytes(seed_s, SABER_NOISE_SEEDBYTES);
-            GenSecret(s1[i], seed_s);
+            // randombytes(seed_s, SABER_NOISE_SEEDBYTES);
+            // GenSecret(s1[i], seed_s);
 
             io->recv_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
             // io->flush();
@@ -113,11 +115,11 @@ class SaberOT: public OT<IO> {
 
             // memsset to 0!!!
             memset(*b0[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
-            memset(*b1[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
+            // memset(*b1[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s0[i], b0[i], 0);
-            RoundingMul(A, s1[i], b1[i], 0);
+            // RoundingMul(A, s1[i], b1[i], 0);
             io->send_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
-            io->send_data(*b1[i], SABER_L * SABER_N * sizeof(uint16_t));
+            // io->send_data(*b1[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         io->flush();
 
@@ -140,11 +142,12 @@ class SaberOT: public OT<IO> {
             for(int j = 0; j < SABER_L; ++j) {
                 for(int k = 0; k < SABER_N; ++k) {
                     s0[i][j][k] = Bits(s0[i][j][k], SABER_EP, SABER_EP);
-                    s1[i][j][k] = Bits(s1[i][j][k], SABER_EP, SABER_EP);
+                    // s1[i][j][k] = Bits(s1[i][j][k], SABER_EP, SABER_EP);
                 }
             }
             InnerProd_plush1(b0p[i], s0[i], v0);
-            InnerProd_plush1(b1p[i], s1[i], v1);
+            // InnerProd_plush1(b1p[i], s1[i], v1);
+            InnerProd_plush1(b1p[i], s0[i], v1);
 
             for (int j = 0; j < SABER_N; ++j) {
                 cm0[j] = Bits(v0[j], SABER_EP - 1, SABER_ET);
@@ -189,25 +192,25 @@ class SaberOT: public OT<IO> {
         for (int64_t i = 0; i < length; ++i) {
             for (int j = 0; j < SABER_L; ++j) {
                 delete[] s0[i][j];
-                delete[] s1[i][j];
+                // delete[] s1[i][j];
             }
             delete[] s0[i];
-            delete[] s1[i];
+            // delete[] s1[i];
             delete[] *b0p[i];
             delete[] *b1p[i];
             delete[] *b0[i];
-            delete[] *b1[i];
+            // delete[] *b1[i];
             delete[] b0p[i];
             delete[] b1p[i];
             delete[] b0[i];
-            delete[] b1[i];
+            // delete[] b1[i];
         }
         delete[] s0;
-        delete[] s1;
+        // delete[] s1;
         delete[] b0p;
         delete[] b1p;
         delete[] b0;
-        delete[] b1;
+        // delete[] b1;
         delete[] v0;
         delete[] v1;
         delete[] cm0;
@@ -257,15 +260,15 @@ class SaberOT: public OT<IO> {
         }
         
         uint16_t ***b0 = new uint16_t**[length];
-        uint16_t ***b1 = new uint16_t**[length];
+        // uint16_t ***b1 = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
             b0[i] = new uint16_t*[SABER_L];
-            b1[i] = new uint16_t*[SABER_L];
+            // b1[i] = new uint16_t*[SABER_L];
             *b0[i] = new uint16_t[SABER_L * SABER_N];
-            *b1[i] = new uint16_t[SABER_L * SABER_N];
+            // *b1[i] = new uint16_t[SABER_L * SABER_N];
             for (int j = 1; j < SABER_L; j++) {
                 b0[i][j] = b0[i][j - 1] + SABER_N;
-                b1[i][j] = b1[i][j - 1] + SABER_N;
+                // b1[i][j] = b1[i][j - 1] + SABER_N;
             }
         }
 
@@ -305,7 +308,7 @@ class SaberOT: public OT<IO> {
             // io->flush();
 
             io->recv_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
-            io->recv_data(*b1[i], SABER_L * SABER_N * sizeof(uint16_t));
+            // io->recv_data(*b1[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         io->flush();
 
@@ -344,7 +347,8 @@ class SaberOT: public OT<IO> {
                 }
             }
             if(x[i]) {
-                InnerProd_plush1(b1[i], sp[i], vp);
+                // InnerProd_plush1(b1[i], sp[i], vp);
+                InnerProd_plush1(b0[i], sp[i], vp);
                 for (int j = 0; j < SABER_N; ++j) {
                     cm1[j] = Bits(vp[j] - (cm1[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
                 }
@@ -382,17 +386,17 @@ class SaberOT: public OT<IO> {
             delete[] *b0p[i];
             delete[] *b1p[i];
             delete[] *b0[i];
-            delete[] *b1[i];
+            // delete[] *b1[i];
             delete[] b0p[i];
             delete[] b1p[i];
             delete[] b0[i];
-            delete[] b1[i];
+            // delete[] b1[i];
         }
         delete[] sp;
         delete[] b0p;
         delete[] b1p;
         delete[] b0;
-        delete[] b1;
+        // delete[] b1;
         delete[] cm0;
         delete[] cm1;
         delete[] vp;
