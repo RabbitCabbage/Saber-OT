@@ -7,7 +7,7 @@
 
 /* Change this for different security strengths */
 // #define SABER_L 2 /* LightSaber */
-#define SABER_L 2 /* Saber */
+#define SABER_L 3 /* Saber */
 // #define SABER_L 4 /* FireSaber */
 
 /* Don't change anything below this line */
