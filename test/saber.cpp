@@ -21,13 +21,23 @@ int main(int argc, char** argv) {
     OTNP<NetIO> * np = new OTNP<NetIO>(io); 
     cout <<"128 NPOTs:\t"<<test_ot<OTNP<NetIO>>(np, io, party, 128)<<" ms"<<endl;
 
-    NPSaber1<NetIO> *npsaber1 = new NPSaber1<NetIO>(io);
+    uint8_t* seed_A = new uint8_t[SABER_SEEDBYTES];
+    uint16_t* r = new uint16_t[SABER_L * SABER_N];
+
+    FILE *fp1 = fopen("random.txt", "rb");
+    fread(r, 1, SABER_L * SABER_N * sizeof(uint16_t), fp1);
+    fclose(fp1);
+    FILE *fp2 = fopen("seedA.txt", "rb");
+    fread(seed_A, 1, SABER_SEEDBYTES, fp2);
+    fclose(fp2);
+
+    NPSaber1<NetIO> *npsaber1 = new NPSaber1<NetIO>(io, seed_A, r);
     cout <<"128 NP Saber OTs(2 secrets):\t"<<test_ot<NPSaber1<NetIO>>(npsaber1, io, party, 128)<<" ms"<<endl;
 
-    NPSaber2<NetIO> *npsaber2 = new NPSaber2<NetIO>(io);
+    NPSaber2<NetIO> *npsaber2 = new NPSaber2<NetIO>(io, seed_A, r);
     cout <<"128 NP Saber OTs(1 secret):\t"<<test_ot<NPSaber2<NetIO>>(npsaber2, io, party, 128)<<" ms"<<endl;
 
-    SimpleSaber<NetIO> *simplesaber = new SimpleSaber<NetIO>(io);
+    SimpleSaber<NetIO> *simplesaber = new SimpleSaber<NetIO>(io, seed_A);
     cout <<"128 Simplest Saber OTs:\t"<<test_ot<SimpleSaber<NetIO>>(simplesaber, io, party, 128)<<" ms"<<endl;
 
 	// cout <<"Passive SABER OT\t"<<double(length)/test_ot<NPSaber1<NetIO>>(npsaber1, io, party, length)*1e6<<" OTps"<<endl;

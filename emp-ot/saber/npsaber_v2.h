@@ -17,9 +17,17 @@ template<typename IO>
 class NPSaber2: public OT<IO> {
     public:
     IO* io;
+    uint8_t seed_A[SABER_SEEDBYTES];
+    uint16_t r[SABER_L * SABER_N];
 
-    NPSaber2(IO* io, uint8_t* _seed_A = nullptr) {
+    NPSaber2(IO* io, uint8_t* _seed_A = nullptr, uint16_t* _r = nullptr) {
         this->io = io;
+        if(_seed_A != nullptr) {
+            memcpy(seed_A, _seed_A, SABER_SEEDBYTES);
+        }
+        if(_r != nullptr) {
+            memcpy(r, _r, SABER_L * SABER_N * sizeof(uint16_t));
+        }
     }
 
     ~NPSaber2() {
@@ -27,19 +35,6 @@ class NPSaber2: public OT<IO> {
     }
 
     void send(const block* data0, const block* data1,int64_t length) override {
-        uint8_t seed_A[SABER_SEEDBYTES];
-        randombytes(seed_A, SABER_SEEDBYTES);
-        shake128(seed_A, SABER_SEEDBYTES, seed_A, SABER_SEEDBYTES);
-        // send seed_A
-        io->send_data(seed_A, SABER_SEEDBYTES);
-        // io->flush();
-
-        // generate r and send
-        uint16_t *r = new uint16_t[SABER_L * SABER_N];
-        randombytes((reinterpret_cast<unsigned char *>(r)), SABER_L * SABER_N * sizeof(uint16_t));
-        io->send_data(r, SABER_L * SABER_N * sizeof(uint16_t));
-        io->flush();
-
         // generate A
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);    
@@ -154,17 +149,9 @@ class NPSaber2: public OT<IO> {
         delete[] v1;
         delete[] cm0;
         delete[] cm1;
-        delete[] r;
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
-        uint8_t seed_A[SABER_SEEDBYTES];
-        io->recv_data(seed_A, SABER_SEEDBYTES);
-        
-        uint16_t *r = new uint16_t[SABER_L * SABER_N];
-        io->recv_data(r, SABER_L * SABER_N * sizeof(uint16_t));
-        io->flush();
-
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);
 
@@ -285,7 +272,6 @@ class NPSaber2: public OT<IO> {
         delete[] cm0;
         delete[] cm1;
         delete[] vp;
-        delete[] r;
     }
 };
 
