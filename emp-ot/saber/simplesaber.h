@@ -12,25 +12,21 @@
 namespace emp{
 template<typename IO>
 class SimpleSaber: public OT<IO>{
-    public:
+   public:
     IO* io;
+    uint8_t seed_A[SABER_SEEDBYTES];
 
-    SimpleSaber(IO* io, uint8_t* _seed_A = nullptr){
+    SimpleSaber(IO* io, uint8_t* _seed_A = nullptr) {
         this->io = io;
+        if(_seed_A != nullptr) {
+            memcpy(seed_A, _seed_A, SABER_SEEDBYTES);
+        }
     }
 
     ~SimpleSaber(){
     }
 
     void send(const block *data0, const block* data1, int64_t length) override {
-        uint8_t seed_A[SABER_SEEDBYTES];
-        randombytes(seed_A, SABER_SEEDBYTES);
-        shake128(seed_A, SABER_SEEDBYTES, seed_A, SABER_SEEDBYTES);
-        // send seed_A
-        io->send_data(seed_A, SABER_SEEDBYTES);
-        io->flush();
-
-        // generate A
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);
 
@@ -141,11 +137,6 @@ class SimpleSaber: public OT<IO>{
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
-        uint8_t seed_A[SABER_SEEDBYTES];
-        io->recv_data(seed_A, SABER_SEEDBYTES);
-        io->flush();
-
-        // generate A
         uint16_t A[SABER_L][SABER_L][SABER_N];
         GenMatrix(A, seed_A);
 
