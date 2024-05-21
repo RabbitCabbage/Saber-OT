@@ -68,12 +68,19 @@ class SimpleSaber: public OT<IO>{
 
             memset(*b[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s[i], b[i], 0);
-            io->send_data(*b[i], SABER_L * SABER_N * sizeof(uint16_t));
+            // compress the vector b using Saber KEM 
+            uint8_t compressed_b[SABER_POLYVECCOMPRESSEDBYTES];
+            POLVECp2BS(compressed_b, b[i]);
+
+            io->send_data(compressed_b, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
         }
         // io->flush();
 
         for (int64_t i = 0; i < length; i++) {
-            io->recv_data(*bp[i], SABER_L * SABER_N * sizeof(uint16_t));
+            uint8_t compressed_bp [SABER_POLYVECCOMPRESSEDBYTES];
+            io->recv_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            //io->recv_data(*bp[i], SABER_L * SABER_N * sizeof(uint16_t));
+            BS2POLVECp(compressed_bp, bp[i]);
         }
         io->flush();
 
@@ -179,8 +186,12 @@ class SimpleSaber: public OT<IO>{
         uint16_t *cm0 = new uint16_t[SABER_N];
         uint16_t *cm1 = new uint16_t[SABER_N];
 
+        uint8_t b_compressed[SABER_POLYVECCOMPRESSEDBYTES];
+
         for (int64_t i = 0; i < length; i++) {
-            io->recv_data(*b[i], SABER_L * SABER_N * sizeof(uint16_t));
+            io->recv_data(b_compressed, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            BS2POLVECp(b_compressed, b[i]);
+            // io->recv_data(*b[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         // io->flush();
 
@@ -201,7 +212,10 @@ class SimpleSaber: public OT<IO>{
                     }
                 }
             // }
-            io->send_data(*bp[i], SABER_L * SABER_N * sizeof(uint16_t));
+            uint8_t compressed_bp[SABER_POLYVECCOMPRESSEDBYTES];
+            POLVECp2BS(compressed_bp, bp[i]);
+            io->send_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            //io->send_data(*bp[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         io->flush();
 

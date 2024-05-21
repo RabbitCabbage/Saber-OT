@@ -83,7 +83,10 @@ class NPSaber2: public OT<IO> {
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(s0[i], seed_s);
 
-            io->recv_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
+            uint8_t compressed_b0p [SABER_POLYVECCOMPRESSEDBYTES];
+            io->recv_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            BS2POLVECp(compressed_b0p, b0p[i]);
+            //io->recv_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) {
                     b1p[i][j][k] = r[j * SABER_N + k] - b0p[i][j][k];
@@ -92,7 +95,10 @@ class NPSaber2: public OT<IO> {
 
             memset(*b0[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s0[i], b0[i], 0);
-            io->send_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
+            uint8_t compressed_bp[SABER_POLYVECCOMPRESSEDBYTES];
+            POLVECp2BS(compressed_bp, b0[i]);
+            io->send_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            //io->send_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         io->flush();
         
@@ -216,9 +222,15 @@ class NPSaber2: public OT<IO> {
                 }
             }
 
-            io->send_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
+            uint8_t compressed_b0p[SABER_POLYVECCOMPRESSEDBYTES];
+            POLVECp2BS(compressed_b0p, b0p[i]);
+            io->send_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            //io->send_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
 
-            io->recv_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
+            uint8_t compressed_bp [SABER_POLYVECCOMPRESSEDBYTES];
+            io->recv_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            BS2POLVECp(compressed_bp, b0[i]);
+            //io->recv_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         io->flush();
 
