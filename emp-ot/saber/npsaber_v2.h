@@ -90,9 +90,9 @@ class NPSaber2: public OT<IO> {
 
             memset(*b0[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s0[i], b0[i], 0);
-            uint8_t compressed_bp[SABER_POLYVECCOMPRESSEDBYTES];
-            POLVECp2BS(compressed_bp, b0[i]);
-            io->send_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            uint8_t compressed_b0[SABER_POLYVECCOMPRESSEDBYTES];
+            POLVECp2BS(compressed_b0, b0[i]);
+            io->send_data(compressed_b0, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
             //io->send_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
         }
         io->flush();
@@ -116,9 +116,15 @@ class NPSaber2: public OT<IO> {
                 cm0[j] = Bits(v0[j], SABER_EP - 1, SABER_ET);
                 cm1[j] = Bits(v1[j], SABER_EP - 1, SABER_ET);
             }
+            uint8_t compressed_cm0 [SABER_SCALEBYTES_KEM];
+            POLT2BS(compressed_cm0, cm0);
+            io->send_data(compressed_cm0, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
+            uint8_t compressed_cm1 [SABER_SCALEBYTES_KEM];
+            POLT2BS(compressed_cm1, cm1);
+            io->send_data(compressed_cm1, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
 
-            io->send_data(cm0, SABER_N * sizeof(uint16_t));
-            io->send_data(cm1, SABER_N * sizeof(uint16_t));
+            //io->send_data(cm0, SABER_N * sizeof(uint16_t));
+            //io->send_data(cm1, SABER_N * sizeof(uint16_t));
 
             for (int j = 0; j < SABER_N; ++j) {
                 v0[j] = Bits(v0[j], SABER_EP, 1);
@@ -228,8 +234,14 @@ class NPSaber2: public OT<IO> {
         for (int64_t i = 0; i < length; ++i) {
             memset(cm0, 0, SABER_N * sizeof(uint16_t));
             memset(cm1, 0, SABER_N * sizeof(uint16_t));
-            io->recv_data(cm0, SABER_N * sizeof(uint16_t));
-            io->recv_data(cm1, SABER_N * sizeof(uint16_t));
+            uint8_t compressed_cm0 [SABER_SCALEBYTES_KEM];
+            io->recv_data(compressed_cm0, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
+            BS2POLT(compressed_cm0, cm0);
+            //io->recv_data(cm0, SABER_N * sizeof(uint16_t));
+            uint8_t compressed_cm1 [SABER_SCALEBYTES_KEM];
+            io->recv_data(compressed_cm1, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
+            BS2POLT(compressed_cm1, cm1);
+            //io->recv_data(cm1, SABER_N * sizeof(uint16_t));
             io->recv_data(m, 2 * sizeof(block));
 
             memset(vp, 0, SABER_N * sizeof(uint16_t));
