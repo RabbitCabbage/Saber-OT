@@ -13,25 +13,25 @@ int main(){
     // simulate the sender
     uint8_t seed_A[SABER_SEEDBYTES];
     uint8_t seed_s[SABER_NOISE_SEEDBYTES];
-    uint16_t A[SABER_L][SABER_L][SABER_N];
-    // uint16_t s0[SABER_L][SABER_N];
-    // uint16_t s1[SABER_L][SABER_N];
-    // uint16_t b0[SABER_L][SABER_N];
-    // uint16_t b1[SABER_L][SABER_N];
-    uint16_t **s0 = new uint16_t*[SABER_L];
-    uint16_t **s1 = new uint16_t*[SABER_L];
-    uint16_t **b0 = new uint16_t*[SABER_L];
-    uint16_t **b1 = new uint16_t*[SABER_L];
-    for (int i = 0; i < SABER_L; i++) {
+    uint16_t A[SABER_K][SABER_K][SABER_N];
+    // uint16_t s0[SABER_K][SABER_N];
+    // uint16_t s1[SABER_K][SABER_N];
+    // uint16_t b0[SABER_K][SABER_N];
+    // uint16_t b1[SABER_K][SABER_N];
+    uint16_t **s0 = new uint16_t*[SABER_K];
+    uint16_t **s1 = new uint16_t*[SABER_K];
+    uint16_t **b0 = new uint16_t*[SABER_K];
+    uint16_t **b1 = new uint16_t*[SABER_K];
+    for (int i = 0; i < SABER_K; i++) {
         s0[i] = new uint16_t[SABER_N];
         s1[i] = new uint16_t[SABER_N];
         b0[i] = new uint16_t[SABER_N];
         b1[i] = new uint16_t[SABER_N];
     }
-    uint16_t r[SABER_L * SABER_N];
+    uint16_t r[SABER_K * SABER_N];
 
     // gen r
-    randombytes(reinterpret_cast<unsigned char *>(r), SABER_N * SABER_L * sizeof(uint16_t));
+    randombytes(reinterpret_cast<unsigned char *>(r), SABER_N * SABER_K * sizeof(uint16_t));
 
     // Generate A
     randombytes(seed_A, SABER_SEEDBYTES);
@@ -44,13 +44,13 @@ int main(){
 
     // simulate the receiver
     // use the same seed_A and matrix A
-    // uint16_t sp[SABER_L][SABER_N];
-    // uint16_t b1p[SABER_L][SABER_N];
-    // uint16_t b0p[SABER_L][SABER_N];
-    uint16_t **sp = new uint16_t*[SABER_L];
-    uint16_t **b1p = new uint16_t*[SABER_L];
-    uint16_t **b0p = new uint16_t*[SABER_L];
-    for (int i = 0; i < SABER_L; i++) {
+    // uint16_t sp[SABER_K][SABER_N];
+    // uint16_t b1p[SABER_K][SABER_N];
+    // uint16_t b0p[SABER_K][SABER_N];
+    uint16_t **sp = new uint16_t*[SABER_K];
+    uint16_t **b1p = new uint16_t*[SABER_K];
+    uint16_t **b0p = new uint16_t*[SABER_K];
+    for (int i = 0; i < SABER_K; i++) {
         sp[i] = new uint16_t[SABER_N];
         b1p[i] = new uint16_t[SABER_N];
         b0p[i] = new uint16_t[SABER_N];
@@ -61,7 +61,7 @@ int main(){
     if (x) {
         RoundingMul(A, sp, b1p, 1);
         // b0p = r - b1p;
-        for (int i = 0; i < SABER_L; i++) {
+        for (int i = 0; i < SABER_K; i++) {
             for (int j = 0; j < SABER_N; j++) {
                 b0p[i][j] = r[i * SABER_N + j] - b1p[i][j];
             }
@@ -69,7 +69,7 @@ int main(){
     } else {
         RoundingMul(A, sp, b0p, 1);
         // b1p = r - b0p;
-        for (int i = 0; i < SABER_L; i++) {
+        for (int i = 0; i < SABER_K; i++) {
             for (int j = 0; j < SABER_N; j++) {
                 b1p[i][j] = r[i * SABER_N + j] - b0p[i][j];
             }
@@ -85,7 +85,7 @@ int main(){
     uint16_t v1[SABER_N];
     memset(v0, 0, SABER_N * sizeof(uint16_t));
     memset(v1, 0, SABER_N * sizeof(uint16_t));
-    for(int j = 0; j < SABER_L; ++j) {
+    for(int j = 0; j < SABER_K; ++j) {
         for(int k = 0; k < SABER_N; ++k) {
             s0[j][k] = Bits(s0[j][k], SABER_EP, SABER_EP);
             s1[j][k] = Bits(s1[j][k], SABER_EP, SABER_EP);
@@ -112,7 +112,7 @@ int main(){
     // simulate the receiver
     uint16_t vp[SABER_N];
     memset(vp, 0, SABER_N * sizeof(uint16_t));
-    for (int j = 0; j < SABER_L; ++j) {
+    for (int j = 0; j < SABER_K; ++j) {
         for (int k = 0; k < SABER_N; ++k) { 
             sp[j][k] = Bits(sp[j][k], SABER_EP, SABER_EP);
         }

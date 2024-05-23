@@ -27,31 +27,31 @@ class SimpleSaber: public OT<IO>{
     }
 
     void send(const block *data0, const block* data1, int64_t length) override {
-        uint16_t A[SABER_L][SABER_L][SABER_N];
+        uint16_t A[SABER_K][SABER_K][SABER_N];
         GenMatrix(A, seed_A);
 
         uint16_t ***s = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
-            s[i] = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; j++) {
+            s[i] = new uint16_t*[SABER_K];
+            for (int j = 0; j < SABER_K; j++) {
                 s[i][j] = new uint16_t[SABER_N];
             }
         }
 
         uint16_t ***b = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
-            b[i] = new uint16_t*[SABER_L];
-            *b[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
+            b[i] = new uint16_t*[SABER_K];
+            *b[i] = new uint16_t[SABER_K * SABER_N];
+            for (int j = 1; j < SABER_K; j++) {
                 b[i][j] = b[i][j - 1] + SABER_N;
             }
         }
 
         uint16_t ***bp = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
-            bp[i] = new uint16_t*[SABER_L];
-            *bp[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
+            bp[i] = new uint16_t*[SABER_K];
+            *bp[i] = new uint16_t[SABER_K * SABER_N];
+            for (int j = 1; j < SABER_K; j++) {
                 bp[i][j] = bp[i][j - 1] + SABER_N;
             }
         }
@@ -62,7 +62,7 @@ class SimpleSaber: public OT<IO>{
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(s[i], seed_s);
 
-            memset(*b[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
+            memset(*b[i], 0, SABER_K * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s[i], b[i], 0);
             // compress the vector b using Saber KEM 
             uint8_t compressed_b[SABER_POLYVECCOMPRESSEDBYTES];
@@ -75,7 +75,7 @@ class SimpleSaber: public OT<IO>{
         for (int64_t i = 0; i < length; i++) {
             uint8_t compressed_bp [SABER_POLYVECCOMPRESSEDBYTES];
             io->recv_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            //io->recv_data(*bp[i], SABER_L * SABER_N * sizeof(uint16_t));
+            //io->recv_data(*bp[i], SABER_K * SABER_N * sizeof(uint16_t));
             BS2POLVECp(compressed_bp, bp[i]);
         }
         io->flush();
@@ -90,13 +90,13 @@ class SimpleSaber: public OT<IO>{
             memset(v1, 0, SABER_N * sizeof(uint16_t));
             memset(cm0, 0, SABER_N * sizeof(uint16_t));
             memset(cm1, 0, SABER_N * sizeof(uint16_t));
-            for (int j = 0; j < SABER_L; j++) {
+            for (int j = 0; j < SABER_K; j++) {
                 for (int k = 0; k < SABER_N; k++) {
                     s[i][j][k] = Bits(s[i][j][k], SABER_EP, SABER_EP);
                 }
             }
             InnerProd_plush1(bp[i], s[i], v0);
-            for (int j = 0; j < SABER_L; j++) {
+            for (int j = 0; j < SABER_K; j++) {
                 for (int k = 0; k < SABER_N; k++) {
                     // bp[j][k] = bp[j][k] - b[j][k];
                     bp[i][j][k] = Bits(bp[i][j][k] - b[i][j][k], SABER_EP, SABER_EP);
@@ -125,7 +125,7 @@ class SimpleSaber: public OT<IO>{
             // io->flush();
         }
         for (int64_t i = 0; i < length; i++) {
-            for (int j = 0; j < SABER_L; j++) {
+            for (int j = 0; j < SABER_K; j++) {
                 delete[] s[i][j];
             }
             delete[] s[i];
@@ -144,31 +144,31 @@ class SimpleSaber: public OT<IO>{
     }
 
     void recv(block* data, const bool* x, int64_t length) override {
-        uint16_t A[SABER_L][SABER_L][SABER_N];
+        uint16_t A[SABER_K][SABER_K][SABER_N];
         GenMatrix(A, seed_A);
 
         uint16_t ***b = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
-            b[i] = new uint16_t*[SABER_L];
-            *b[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
+            b[i] = new uint16_t*[SABER_K];
+            *b[i] = new uint16_t[SABER_K * SABER_N];
+            for (int j = 1; j < SABER_K; j++) {
                 b[i][j] = b[i][j - 1] + SABER_N;
             }
         }
 
         uint16_t ***bp = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
-            bp[i] = new uint16_t*[SABER_L];
-            *bp[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
+            bp[i] = new uint16_t*[SABER_K];
+            *bp[i] = new uint16_t[SABER_K * SABER_N];
+            for (int j = 1; j < SABER_K; j++) {
                 bp[i][j] = bp[i][j - 1] + SABER_N;
             }
         }
 
         uint16_t ***sp = new uint16_t**[length];
         for (int64_t i = 0; i < length; i++) {
-            sp[i] = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; j++) {
+            sp[i] = new uint16_t*[SABER_K];
+            for (int j = 0; j < SABER_K; j++) {
                 sp[i][j] = new uint16_t[SABER_N];
             }
         }
@@ -182,7 +182,7 @@ class SimpleSaber: public OT<IO>{
         for (int64_t i = 0; i < length; i++) {
             io->recv_data(b_compressed, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
             BS2POLVECp(b_compressed, b[i]);
-            // io->recv_data(*b[i], SABER_L * SABER_N * sizeof(uint16_t));
+            // io->recv_data(*b[i], SABER_K * SABER_N * sizeof(uint16_t));
         }
         // io->flush();
 
@@ -192,11 +192,11 @@ class SimpleSaber: public OT<IO>{
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(sp[i], seed_s);
 
-            memset(*bp[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
+            memset(*bp[i], 0, SABER_K * SABER_N * sizeof(uint16_t));
             RoundingMul(A, sp[i], bp[i], 1);
             // keep constant time
             // if (x[i]) {
-                for (int j = 0; j < SABER_L; j++) {
+                for (int j = 0; j < SABER_K; j++) {
                     for (int k = 0; k < SABER_N; k++) {
                         // bp[j][k] = bp[j][k] + b[j][k];
                         bp[i][j][k] = Bits(bp[i][j][k] + x[i] * b[i][j][k], SABER_EP, SABER_EP);                    
@@ -206,14 +206,14 @@ class SimpleSaber: public OT<IO>{
             uint8_t compressed_bp[SABER_POLYVECCOMPRESSEDBYTES];
             POLVECp2BS(compressed_bp, bp[i]);
             io->send_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            //io->send_data(*bp[i], SABER_L * SABER_N * sizeof(uint16_t));
+            //io->send_data(*bp[i], SABER_K * SABER_N * sizeof(uint16_t));
         }
         io->flush();
 
         for (int64_t i = 0; i < length; i++) {
             // compute vp
             memset(vp, 0, SABER_N * sizeof(uint16_t));
-            for (int j = 0; j < SABER_L; ++j) {
+            for (int j = 0; j < SABER_K; ++j) {
                 for (int k = 0; k < SABER_N; ++k) { 
                     sp[i][j][k] = Bits(sp[i][j][k], SABER_EP, SABER_EP);
                 }
@@ -241,7 +241,7 @@ class SimpleSaber: public OT<IO>{
             }
         }
         for (int64_t i = 0; i < length; i++) {
-            for (int j = 0; j < SABER_L; j++) {
+            for (int j = 0; j < SABER_K; j++) {
                 delete[] sp[i][j];
             }
             delete[] sp[i];

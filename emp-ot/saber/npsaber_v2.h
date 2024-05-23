@@ -10,6 +10,11 @@
 #include "emp-ot/saber/poly_mul.h"
 #include "emp-ot/saber/rng.h"
 #include "emp-ot/saber/SABER_params.h"
+#include <emp-tool/emp-tool.h>
+#include <immintrin.h>
+#include <iostream>
+#include <stdint.h>
+#include <string.h>
 
 
 namespace emp {
@@ -17,8 +22,8 @@ template<typename IO>
 class NPSaber2: public OT<IO> {
     public:
     IO* io;
-    uint8_t seed_A[SABER_SEEDBYTES];
-    uint16_t r[SABER_L * SABER_N];
+    unsigned char seed_A[SABER_SEEDBYTES];
+    uint16_t r[SABER_K * SABER_N];
 
     NPSaber2(IO* io, uint8_t* _seed_A = nullptr, uint16_t* _r = nullptr) {
         this->io = io;
@@ -26,7 +31,7 @@ class NPSaber2: public OT<IO> {
             memcpy(seed_A, _seed_A, SABER_SEEDBYTES);
         }
         if(_r != nullptr) {
-            memcpy(r, _r, SABER_L * SABER_N * sizeof(uint16_t));
+            memcpy(r, _r, SABER_K * SABER_N * sizeof(uint16_t));
         }
     }
 
@@ -35,243 +40,133 @@ class NPSaber2: public OT<IO> {
     }
 
     void send(const block* data0, const block* data1,int64_t length) override {
-        // generate A
-        uint16_t A[SABER_L][SABER_L][SABER_N];
-        GenMatrix(A, seed_A);    
-        uint16_t ***s0 = new uint16_t**[length];
-        for (int64_t i = 0; i < length; i++) {
-            s0[i] = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; j++) {
-                s0[i][j] = new uint16_t[SABER_N];
-            }
-        }
+        uint32_t i,j,k;
+        polyvec a[SABER_K];
+        uint16_t skpv1[SABER_K][SABER_N];
+        uint16_t temp[SABER_K][SABER_N];
+        uint16_t bp[SABER_K][SABER_N];
 
-        uint16_t ***b0p = new uint16_t**[length];
-        uint16_t ***b1p = new uint16_t**[length];
-        for (int64_t i = 0; i < length; i++) {
-            b0p[i] = new uint16_t*[SABER_L];
-            b1p[i] = new uint16_t*[SABER_L];
-            *b0p[i] = new uint16_t[SABER_L * SABER_N];
-            *b1p[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
-                b0p[i][j] = b0p[i][j - 1] + SABER_N;
-                b1p[i][j] = b1p[i][j - 1] + SABER_N;
-            }
-        }
-
-        uint16_t ***b0 = new uint16_t**[length];
-        for (int64_t i = 0; i < length; i++) {
-            b0[i] = new uint16_t*[SABER_L];
-            *b0[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
-                b0[i][j] = b0[i][j - 1] + SABER_N;
-            }
-        }
-
-        uint16_t *cm0 = new uint16_t[SABER_N];
-        uint16_t *cm1 = new uint16_t[SABER_N];
-        uint8_t seed_s[SABER_NOISE_SEEDBYTES];
-        uint16_t *v0 = new uint16_t[SABER_N];
-        uint16_t *v1 = new uint16_t[SABER_N];
-
-        for (int64_t i = 0; i < length; ++i) {
-            randombytes(seed_s, SABER_NOISE_SEEDBYTES);
-            GenSecret(s0[i], seed_s);
-
-            uint8_t compressed_b0p [SABER_POLYVECCOMPRESSEDBYTES];
-            io->recv_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            BS2POLVECp(compressed_b0p, b0p[i]);
-            //io->recv_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
-            for (int j = 0; j < SABER_L; ++j) {
-                for (int k = 0; k < SABER_N; ++k) {
-                    b1p[i][j][k] = r[j * SABER_N + k] - b0p[i][j][k];
-                }
-            }
-
-            memset(*b0[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
-            RoundingMul(A, s0[i], b0[i], 0);
-            uint8_t compressed_bp[SABER_POLYVECCOMPRESSEDBYTES];
-            POLVECp2BS(compressed_bp, b0[i]);
-            io->send_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            //io->send_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
-        }
-        io->flush();
+        //--------------AVX declaration------------------
         
-        block m[2];
-        for (int64_t i = 0; i < length; ++i) {
-            // compute ciphertexts and send
-            memset(v0, 0, SABER_N * sizeof(uint16_t));
-            memset(v1, 0, SABER_N * sizeof(uint16_t));
-            memset(cm0, 0, SABER_N * sizeof(uint16_t));
-            memset(cm1, 0, SABER_N * sizeof(uint16_t));
-            for(int j = 0; j < SABER_L; ++j) {
-                for(int k = 0; k < SABER_N; ++k) {
-                    s0[i][j][k] = Bits(s0[i][j][k], SABER_EP, SABER_EP);
+        __m256i sk_avx[SABER_K][SABER_N/16];
+        __m256i mod, mod_p;
+        __m256i res_avx[SABER_K][SABER_N/16];
+        __m256i v_avx[SABER_N/16];
+        __m256i a_avx[SABER_K][SABER_K][SABER_N/16];
+        //__m256i acc[2*SABER_N/16];
+
+        __m256i bp_avx[SABER_K][SABER_N/16];
+
+        mask_ar[0]=~(0UL);mask_ar[1]=~(0UL);mask_ar[2]=~(0UL);mask_ar[3]=~(0UL);
+        mask_load = _mm256_loadu_si256 ((__m256i const *)mask_ar);
+
+        mod=_mm256_set1_epi16(SABER_Q-1);
+        mod_p=_mm256_set1_epi16(SABER_P-1);
+
+        
+
+        floor_round=_mm256_set1_epi16(4);
+
+        H1_avx=_mm256_set1_epi16(h1);
+    
+        __m256i b_bucket[NUM_POLY][SCHB_N*4];
+
+        //--------------AVX declaration ends------------------
+
+        load_values();
+        GenMatrix(a, seed_A);
+        GenSecret(skpv1,noiseseed);
+
+        // ----------- Load skpv1 into avx vectors ---------- 
+        for(i=0;i<SABER_K;i++){ 
+            for(j=0; j<SABER_N/16; j++){
+                sk_avx[i][j] = _mm256_loadu_si256 ((__m256i const *) (&skpv1[i][j*16]));
+            }
+        }
+
+        // ----------- Load skpv1 into avx vectors ---------- 
+        for(i=0;i<SABER_K;i++){ 
+            for(j=0;j<SABER_K;j++){
+                for(k=0;k<SABER_N/16;k++){
+                    a_avx[i][j][k]=_mm256_loadu_si256 ((__m256i const *) (&a[i].vec[j].coeffs[k*16]));
                 }
             }
-            InnerProd_plush1(b0p[i], s0[i], v0);
-            InnerProd_plush1(b1p[i], s0[i], v1);
+        }
+        //-----------------matrix-vector multiplication and rounding
 
-            for (int j = 0; j < SABER_N; ++j) {
-                cm0[j] = Bits(v0[j], SABER_EP - 1, SABER_ET);
-                cm1[j] = Bits(v1[j], SABER_EP - 1, SABER_ET);
+        for(j=0;j<NUM_POLY;j++){
+            TC_eval(sk_avx[j], b_bucket[j]);
+        }
+        matrix_vector_mul(a_avx, b_bucket, res_avx, 0);// Matrix-vector multiplication; Matrix in normal order
+        
+        // Now truncation
+        for(i=0;i<SABER_K;i++){ //shift right EQ-EP bits
+            for(j=0;j<SABER_N/16;j++){
+                res_avx[i][j]=_mm256_add_epi16 (res_avx[i][j], H1_avx);
+                res_avx[i][j]=_mm256_srli_epi16 (res_avx[i][j], (SABER_EQ-SABER_EP) );
+                res_avx[i][j]=_mm256_and_si256 (res_avx[i][j], mod);			
             }
-
-            io->send_data(cm0, SABER_N * sizeof(uint16_t));
-            io->send_data(cm1, SABER_N * sizeof(uint16_t));
-
-            for (int j = 0; j < SABER_N; ++j) {
-                v0[j] = Bits(v0[j], SABER_EP, 1);
-                v1[j] = Bits(v1[j], SABER_EP, 1);
-            }
-            m[0] = Hash::hash_for_block(v0, SABER_N * 2) ^ data0[i];
-            m[1] = Hash::hash_for_block(v1, SABER_N * 2) ^ data1[i];
-            io->send_data(m, 2 * sizeof(block));
         }
 
-        for (int64_t i = 0; i < length; ++i) {
-            for (int j = 0; j < SABER_L; ++j) {
-                delete[] s0[i][j];
+        // res_avx is round A dot s
+        //-----this result should be put in b for later use in server.
+        for(i=0;i<SABER_K;i++){ // first store in 16 bit arrays
+            for(j=0;j<SABER_N/16;j++){
+                _mm256_maskstore_epi32 ((int *)(temp[i]+j*16), mask_load, res_avx[i][j]);
+                //temp is for temponary use of the result b.
             }
-            delete[] s0[i];
-            delete[] *b0p[i];
-            delete[] *b1p[i];
-            delete[] *b0[i];
-            delete[] b0p[i];
-            delete[] b1p[i];
-            delete[] b0[i];
         }
-        delete[] s0;
-        delete[] b0p;
-        delete[] b1p;
-        delete[] b0;
-        delete[] v0;
-        delete[] v1;
-        delete[] cm0;
-        delete[] cm1;
-    }
+
+        // use POLVEC2BS to pack our vector b, pack b into ciphertext
+        unsigned char *ciphertext;
+        POLVEC2BS(ciphertext, temp, SABER_P);
+
+        // receive pack_bp from the receiver
+        io->
+        // unpack vector bp using BS2POLVEC
+        auto pack_bp;
+        BS2POLVEC(bp, pack_bp, SABER_P);
+        for(i=0;i<SABER_K;i++){
+            for(j=0; j<SABER_N/16; j++){
+                bp_avx[i][j] = _mm256_loadu_si256 ((__m256i const *) (&pack_bp[i][j*16]));
+            }
+        }
+
+        vector_vector_mul(bp_avx, b_bucket, v_avx);
+        // Computation of v'+h1
+        for(i=0;i<SABER_N/16;i++){//adding h1
+            v_avx[i]=_mm256_add_epi16(v_avx[i], H1_avx);
+        }
+
+        // SHIFTRIGHT(v'+h1-m mod p, EP-ET)
+        for(k=0;k<SABER_N/16;k++)
+        {
+            // v_avx[k]=_mm256_sub_epi16(v_avx[k], message_avx[k]); // KE has no message.
+            v_avx[k]=_mm256_and_si256(v_avx[k], mod_p);
+            v_avx[k]=_mm256_srli_epi16 (v_avx[k], (SABER_EP-SABER_ET) );
+        }
+
+        // Unpack avx
+        for(j=0;j<SABER_N/16;j++)
+        {
+                _mm256_maskstore_epi32 ((int *) (temp[0]+j*16), mask_load, v_avx[j]);
+        }
+        
+        #if Saber_type == 1
+            SABER_pack_3bit(msk_c, temp[0]);
+        #elif Saber_type == 2
+            SABER_pack_4bit(msk_c, temp[0]);
+        #elif Saber_type == 3
+            SABER_pack_6bit(msk_c, temp[0]);
+        #endif
+
+        for(j=0;j<SABER_SCALEBYTES_KEM;j++){
+            ciphertext[SABER_CIPHERTEXTBYTES + j] = msk_c[j];
+        }
+	}
 
     void recv(block* data, const bool* x, int64_t length) override {
-        uint16_t A[SABER_L][SABER_L][SABER_N];
-        GenMatrix(A, seed_A);
-
-        uint16_t ***sp = new uint16_t**[length];
-        for (int64_t i = 0; i < length; i++) {
-            sp[i] = new uint16_t*[SABER_L];
-            for (int j = 0; j < SABER_L; j++) {
-                sp[i][j] = new uint16_t[SABER_N];
-            }
-        }
-
-        uint8_t seed_s[SABER_NOISE_SEEDBYTES];
-
-        uint16_t ***b0p = new uint16_t**[length];
-        uint16_t ***b1p = new uint16_t**[length];
-        for (int64_t i = 0; i < length; i++) {
-            b0p[i] = new uint16_t*[SABER_L];
-            b1p[i] = new uint16_t*[SABER_L];
-            *b0p[i] = new uint16_t[SABER_L * SABER_N];
-            *b1p[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
-                b0p[i][j] = b0p[i][j - 1] + SABER_N;
-                b1p[i][j] = b1p[i][j - 1] + SABER_N;
-            }
-        }
         
-        uint16_t ***b0 = new uint16_t**[length];
-        for (int64_t i = 0; i < length; i++) {
-            b0[i] = new uint16_t*[SABER_L];
-            *b0[i] = new uint16_t[SABER_L * SABER_N];
-            for (int j = 1; j < SABER_L; j++) {
-                b0[i][j] = b0[i][j - 1] + SABER_N;
-            }
-        }
-
-        for (int64_t i = 0; i < length; ++i) {
-            // memsset to 0!!!
-            memset(*b0p[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
-            memset(*b1p[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
-            randombytes(seed_s, SABER_NOISE_SEEDBYTES);
-            GenSecret(sp[i], seed_s);
-            if (x[i]) {
-                RoundingMul(A, sp[i], b1p[i], 1);
-                for (int j = 0; j < SABER_L; ++j) {
-                    for (int k = 0; k < SABER_N; ++k) {
-                        b0p[i][j][k] = r[j * SABER_N + k] - b1p[i][j][k];
-                    }
-                }
-            } else {
-                RoundingMul(A, sp[i], b0p[i], 1);
-                for (int j = 0; j < SABER_L; ++j) {
-                    for (int k = 0; k < SABER_N; ++k) {
-                        b1p[i][j][k] = r[j * SABER_N + k] - b0p[i][j][k];
-                    }
-                }
-            }
-
-            uint8_t compressed_b0p[SABER_POLYVECCOMPRESSEDBYTES];
-            POLVECp2BS(compressed_b0p, b0p[i]);
-            io->send_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            //io->send_data(*b0p[i], SABER_L * SABER_N * sizeof(uint16_t));
-
-            uint8_t compressed_bp [SABER_POLYVECCOMPRESSEDBYTES];
-            io->recv_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            BS2POLVECp(compressed_bp, b0[i]);
-            //io->recv_data(*b0[i], SABER_L * SABER_N * sizeof(uint16_t));
-        }
-        io->flush();
-
-        block m[2];
-        uint16_t *cm0 = new uint16_t[SABER_N];
-        uint16_t *cm1 = new uint16_t[SABER_N];
-        uint16_t* vp = new uint16_t[SABER_N];
-        for (int64_t i = 0; i < length; ++i) {
-            memset(cm0, 0, SABER_N * sizeof(uint16_t));
-            memset(cm1, 0, SABER_N * sizeof(uint16_t));
-            io->recv_data(cm0, SABER_N * sizeof(uint16_t));
-            io->recv_data(cm1, SABER_N * sizeof(uint16_t));
-            io->recv_data(m, 2 * sizeof(block));
-
-            memset(vp, 0, SABER_N * sizeof(uint16_t));
-            for (int j = 0; j < SABER_L; ++j) {
-                for (int k = 0; k < SABER_N; ++k) { 
-                    sp[i][j][k] = Bits(sp[i][j][k], SABER_EP, SABER_EP);
-                }
-            }
-            if(x[i]) {
-                InnerProd_plush1(b0[i], sp[i], vp);
-                for (int j = 0; j < SABER_N; ++j) {
-                    cm1[j] = Bits(vp[j] - (cm1[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
-                }
-                data[i] = m[x[i]] ^ Hash::hash_for_block(cm1, SABER_N * 2);
-            }
-            else {
-                InnerProd_plush1(b0[i], sp[i], vp);
-                for (int j = 0; j < SABER_N; ++j) {
-                    cm0[j] = Bits(vp[j] - (cm0[j] << (SABER_EP - 1 - SABER_ET)) + h2, SABER_EP, 1);
-                }
-                data[i] = m[x[i]] ^ Hash::hash_for_block(cm0, SABER_N * 2);
-            }
-        }
-        for (int64_t i = 0; i < length; i++) {
-            for (int j = 0; j < SABER_L; j++) {
-                delete[] sp[i][j];
-            }
-            delete[] sp[i];
-            delete[] *b0p[i];
-            delete[] *b1p[i];
-            delete[] *b0[i];
-            delete[] b0p[i];
-            delete[] b1p[i];
-            delete[] b0[i];
-        }
-        delete[] sp;
-        delete[] b0p;
-        delete[] b1p;
-        delete[] b0;
-        delete[] cm0;
-        delete[] cm1;
-        delete[] vp;
     }
 };
 
