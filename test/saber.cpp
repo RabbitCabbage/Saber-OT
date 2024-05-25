@@ -31,8 +31,8 @@ int main(int argc, char** argv) {
     fread(seed_A, 1, SABER_SEEDBYTES, fp2);
     fclose(fp2);
 
-    NPSaber1<NetIO> *npsaber1 = new NPSaber1<NetIO>(io, seed_A, r);
-    cout <<"128 NP Saber OTs(2 secrets):\t"<<test_ot<NPSaber1<NetIO>>(npsaber1, io, party, 128)<<" ms"<<endl;
+    // NPSaber1<NetIO> *npsaber1 = new NPSaber1<NetIO>(io, seed_A, r);
+    // cout <<"128 NP Saber OTs(2 secrets):\t"<<test_ot<NPSaber1<NetIO>>(npsaber1, io, party, 128)<<" ms"<<endl;
 
     NPSaber2<NetIO> *npsaber2 = new NPSaber2<NetIO>(io, seed_A, r);
     cout <<"128 NP Saber OTs(1 secret):\t"<<test_ot<NPSaber2<NetIO>>(npsaber2, io, party, 128)<<" ms"<<endl;
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     // ==========================================    
 
     delete np;
-    delete npsaber1;
+    // delete npsaber1;
     delete npsaber2;
     delete simplesaber;
     delete io;

@@ -74,27 +74,28 @@ class NPSaber2: public OT<IO> {
         uint16_t *v0 = new uint16_t[SABER_N];
         uint16_t *v1 = new uint16_t[SABER_N];
 
+        unsigned char pack_info[length][SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM * 2 + 2 * sizeof(block)];
+        uint8_t compressed_b0p[length][SABER_POLYVECCOMPRESSEDBYTES];
+        io->recv_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t) * length);
+
         for (int64_t i = 0; i < length; ++i) {
             randombytes(seed_s, SABER_NOISE_SEEDBYTES);
             GenSecret(s0[i], seed_s);
 
-            uint8_t compressed_b0p [SABER_POLYVECCOMPRESSEDBYTES];
-            io->recv_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            BS2POLVECp(compressed_b0p, b0p[i]);
+            BS2POLVECp(compressed_b0p[i], b0p[i]);
             for (int j = 0; j < SABER_L; ++j) {
                 for (int k = 0; k < SABER_N; ++k) {
                     b1p[i][j][k] = r[j * SABER_N + k] - b0p[i][j][k];
                 }
             }
 
-            unsigned char pack_info[SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM * 2 + 2 * sizeof(block)];
 
             memset(*b0[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
             RoundingMul(A, s0[i], b0[i], 0);
             // uint8_t compressed_b0[SABER_POLYVECCOMPRESSEDBYTES];
             // POLVECp2BS(compressed_b0, b0[i]);
             // io->send_data(compressed_b0, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            POLVECp2BS(pack_info, b0[i]);
+            POLVECp2BS(pack_info[i], b0[i]);
             
             // compute ciphertexts and send
             memset(v0, 0, SABER_N * sizeof(uint16_t));
@@ -119,8 +120,8 @@ class NPSaber2: public OT<IO> {
             // uint8_t compressed_cm1 [SABER_SCALEBYTES_KEM];
             // POLT2BS(compressed_cm1, cm1);
             // io->send_data(compressed_cm1, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
-            POLT2BS(pack_info + SABER_POLYVECCOMPRESSEDBYTES, cm0);
-            POLT2BS(pack_info + SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM, cm1);
+            POLT2BS(pack_info[i] + SABER_POLYVECCOMPRESSEDBYTES, cm0);
+            POLT2BS(pack_info[i] + SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM, cm1);
 
             for (int j = 0; j < SABER_N; ++j) {
                 v0[j] = Bits(v0[j], SABER_EP, 1);
@@ -130,9 +131,10 @@ class NPSaber2: public OT<IO> {
             m[0] = Hash::hash_for_block(v0, SABER_N * 2) ^ data0[i];
             m[1] = Hash::hash_for_block(v1, SABER_N * 2) ^ data1[i];
             // io->send_data(m, 2 * sizeof(block));
-            memcpy(pack_info + SABER_POLYVECCOMPRESSEDBYTES + 2 * SABER_SCALEBYTES_KEM, m, 2 * sizeof(block));
-            io->send_data(pack_info, SABER_POLYVECCOMPRESSEDBYTES + 2 * SABER_SCALEBYTES_KEM + 2 * sizeof(block));
+            memcpy(pack_info[i] + SABER_POLYVECCOMPRESSEDBYTES + 2 * SABER_SCALEBYTES_KEM, m, 2 * sizeof(block));
         }
+
+        io->send_data(pack_info, (SABER_POLYVECCOMPRESSEDBYTES + 2 * SABER_SCALEBYTES_KEM + 2 * sizeof(block)) * length);
 
         for (int64_t i = 0; i < length; ++i) {
             for (int j = 0; j < SABER_L; ++j) {
@@ -197,6 +199,9 @@ class NPSaber2: public OT<IO> {
         uint16_t *cm1 = new uint16_t[SABER_N];
         uint16_t* vp = new uint16_t[SABER_N];
 
+        unsigned char pack_info[length][SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM * 2 + 2 * sizeof(block)];
+        uint8_t compressed_b0p[length][SABER_POLYVECCOMPRESSEDBYTES];
+
         for (int64_t i = 0; i < length; ++i) {
             // memsset to 0!!!
             memset(*b0p[i], 0, SABER_L * SABER_N * sizeof(uint16_t));
@@ -219,29 +224,28 @@ class NPSaber2: public OT<IO> {
                 }
             }
 
-            uint8_t compressed_b0p[SABER_POLYVECCOMPRESSEDBYTES];
-            POLVECp2BS(compressed_b0p, b0p[i]);
-            io->send_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
+            POLVECp2BS(compressed_b0p[i], b0p[i]);
+        }
 
-            // uint8_t compressed_bp [SABER_POLYVECCOMPRESSEDBYTES];
-            // io->recv_data(compressed_bp, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t));
-            unsigned char pack_info[SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM * 2 + 2 * sizeof(block)];
-            io->recv_data(pack_info, SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM * 2 + 2 * sizeof(block));
+        io->send_data(compressed_b0p, SABER_POLYVECCOMPRESSEDBYTES * sizeof(uint8_t) * length);
+        io->recv_data(pack_info, (SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM * 2 + 2 * sizeof(block)) * length);
+
+        for (int64_t i = 0; i < length; ++i) {
             // BS2POLVECp(compressed_bp, b0[i]);
-            BS2POLVECp(pack_info, b0[i]);
+            BS2POLVECp(pack_info[i], b0[i]);
         
             memset(cm0, 0, SABER_N * sizeof(uint16_t));
             memset(cm1, 0, SABER_N * sizeof(uint16_t));
             // uint8_t compressed_cm0 [SABER_SCALEBYTES_KEM];
             // io->recv_data(compressed_cm0, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
             // BS2POLT(compressed_cm0, cm0);
-            BS2POLT(pack_info + SABER_POLYVECCOMPRESSEDBYTES, cm0);
+            BS2POLT(pack_info[i] + SABER_POLYVECCOMPRESSEDBYTES, cm0);
             // uint8_t compressed_cm1 [SABER_SCALEBYTES_KEM];
             // io->recv_data(compressed_cm1, SABER_SCALEBYTES_KEM * sizeof(uint8_t));
             // BS2POLT(compressed_cm1, cm1);
-            BS2POLT(pack_info + SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM, cm1);
+            BS2POLT(pack_info[i] + SABER_POLYVECCOMPRESSEDBYTES + SABER_SCALEBYTES_KEM, cm1);
             // io->recv_data(m, 2 * sizeof(block));
-            memcpy(m, pack_info + SABER_POLYVECCOMPRESSEDBYTES + 2 * SABER_SCALEBYTES_KEM, 2 * sizeof(block));
+            memcpy(m, pack_info[i] + SABER_POLYVECCOMPRESSEDBYTES + 2 * SABER_SCALEBYTES_KEM, 2 * sizeof(block));
 
             memset(vp, 0, SABER_N * sizeof(uint16_t));
             for (int j = 0; j < SABER_L; ++j) {
