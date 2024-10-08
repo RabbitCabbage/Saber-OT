@@ -6,5 +6,6 @@
 #include "emp-ot/saber/npsaber_v1.h"
 #include "emp-ot/saber/npsaber_v2.h"
 #include "emp-ot/saber/simplesaber.h"
+#include "emp-ot/saber/mrsaber.h"
 
 #include "emp-ot/ferret/ferret_cot.h"
