@@ -49,3 +49,7 @@ eigen/
 
 # VOLE COT data file
 data/
+
+.vscode/
+compile_commands.json
+run
