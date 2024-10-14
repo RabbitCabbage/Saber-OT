@@ -32,10 +32,10 @@ int main(int argc, char** argv) {
     uint8_t* seed_A = new uint8_t[SABER_SEEDBYTES];
     uint16_t* r = new uint16_t[SABER_L * SABER_N];
 
-    FILE *fp1 = fopen("random.txt", "rb");
+    FILE *fp1 = fopen("test/random.txt", "rb");
     fread(r, 1, SABER_L * SABER_N * sizeof(uint16_t), fp1);
     fclose(fp1);
-    FILE *fp2 = fopen("seedA.txt", "rb");
+    FILE *fp2 = fopen("test/seedA.txt", "rb");
     fread(seed_A, 1, SABER_SEEDBYTES, fp2);
     fclose(fp2);
 
