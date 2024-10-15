@@ -49,3 +49,6 @@ eigen/
 
 # VOLE COT data file
 data/
+
+*.json
+.vscode/
