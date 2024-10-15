@@ -13,6 +13,8 @@ install_manifest.txt
 *.slo
 *.lo
 *.o
+# exept one file
+!test\KyberOT\keccak4x\KeccakP-1600-times4-SIMD256.o
 *.obj
 
 # Precompiled Headers
