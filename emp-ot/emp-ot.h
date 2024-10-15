@@ -3,8 +3,9 @@
 #include "emp-ot/co.h"
 #include "emp-ot/np.h"
 #include "emp-ot/iknp.h"
-#include "emp-ot/saber/npsaber_v1.h"
-#include "emp-ot/saber/npsaber_v2.h"
-#include "emp-ot/saber/simplesaber.h"
+// #include "emp-ot/saber/npsaber_v1.h"
+// #include "emp-ot/saber/npsaber_v2.h"
+// #include "emp-ot/saber/simplesaber.h"
+#include "emp-ot/mr/mrkyber.h"
 
 #include "emp-ot/ferret/ferret_cot.h"

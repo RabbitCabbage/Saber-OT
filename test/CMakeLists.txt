@@ -2,10 +2,12 @@
 # set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # add_link_options(-fsanitize=address)
 
+ADD_SUBDIRECTORY(KyberOT)
+
 #Testing macro
 macro (add_test_executable_with_lib _name libs)
 	add_executable(test_${_name} "${_name}.cpp")
-	target_link_libraries(test_${_name} ${EMP-TOOL_LIBRARIES})
+	target_link_libraries(test_${_name} ${EMP-TOOL_LIBRARIES} KyberOT)
 endmacro()
 
 macro (add_test_case _name)
@@ -23,4 +25,4 @@ endmacro()
 # add_test_case_with_run(ot)
 # add_test_case_with_run(ferret)
 # add_test_case(bench_lpn)
-add_test_case(saber)
+add_test_case(mr_kyber)

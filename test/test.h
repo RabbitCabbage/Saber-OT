@@ -40,7 +40,7 @@ double test_ot(T * ot, NetIO *io, int party, int64_t length) {
 			}}
 		}
 	}
-	std::cout << "Tests passed.\t";
+	// std::cout << "Tests passed.\t";
 	delete[] b0;
 	delete[] b1;
 	delete[] r;
